@@ -7,9 +7,8 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
-import java.util.Map;
 
-import static org.elasticsearch.action.ValidateActions.addValidationError;
+import static org.elasticsearch.action.ValidateActions.*;
 
 /**
  * TODO: extends AnalyzeRequest? this implement is not smart...

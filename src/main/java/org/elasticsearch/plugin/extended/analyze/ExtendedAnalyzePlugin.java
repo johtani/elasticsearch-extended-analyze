@@ -1,6 +1,5 @@
 package org.elasticsearch.plugin.extended.analyze;
 
-import org.elasticsearch.action.ActionModule;
 import org.elasticsearch.common.collect.ImmutableList;
 import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.module.extended.analyze.ExtendedAnalyzeModule;

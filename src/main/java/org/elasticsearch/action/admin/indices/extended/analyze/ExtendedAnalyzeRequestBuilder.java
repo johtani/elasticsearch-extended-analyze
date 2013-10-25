@@ -2,7 +2,6 @@ package org.elasticsearch.action.admin.indices.extended.analyze;
 
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.single.custom.SingleCustomOperationRequestBuilder;
-import org.elasticsearch.client.AdminClient;
 import org.elasticsearch.client.IndicesAdminClient;
 import org.elasticsearch.client.internal.InternalIndicesAdminClient;
 

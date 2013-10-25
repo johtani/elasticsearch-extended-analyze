@@ -9,10 +9,10 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import static org.elasticsearch.node.NodeBuilder.nodeBuilder;
-import static org.elasticsearch.common.settings.ImmutableSettings.settingsBuilder;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.MatcherAssert.assertThat;
+import static org.elasticsearch.common.settings.ImmutableSettings.*;
+import static org.elasticsearch.node.NodeBuilder.*;
+import static org.hamcrest.MatcherAssert.*;
+import static org.hamcrest.Matchers.*;
 
 /**
  * TODO : currently, simple test only.

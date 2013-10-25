@@ -13,10 +13,9 @@ import org.elasticsearch.rest.*;
 
 import java.io.IOException;
 
-import static org.elasticsearch.rest.RestRequest.Method.GET;
-import static org.elasticsearch.rest.RestRequest.Method.POST;
-import static org.elasticsearch.rest.RestStatus.OK;
-import static org.elasticsearch.rest.action.support.RestXContentBuilder.restContentBuilder;
+import static org.elasticsearch.rest.RestRequest.Method.*;
+import static org.elasticsearch.rest.RestStatus.*;
+import static org.elasticsearch.rest.action.support.RestXContentBuilder.*;
 
 /**
  * Extended _analyze for REST endpoint
