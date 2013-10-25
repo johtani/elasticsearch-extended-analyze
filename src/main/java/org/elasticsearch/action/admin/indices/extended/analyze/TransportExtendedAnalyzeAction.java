@@ -53,11 +53,6 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Created with IntelliJ IDEA.
- * User: johtani
- * Date: 2013/10/25
- * Time: 2:07
- * To change this template use File | Settings | File Templates.
  */
 public class TransportExtendedAnalyzeAction extends TransportSingleCustomOperationAction<ExtendedAnalyzeRequest, ExtendedAnalyzeResponse> {
 

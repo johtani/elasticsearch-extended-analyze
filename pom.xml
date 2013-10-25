@@ -8,6 +8,7 @@
     <version>0.1-SNAPSHOT</version>
     <packaging>jar</packaging>
     <description>Extend _analyze API for ElasticSearch</description>
+    <url>https://github.com/johtani/elasticsearch-extended-analyze</url>
     <licenses>
         <license>
             <name>The Apache Software License, Version 2.0</name>
@@ -17,9 +18,8 @@
     </licenses>
     <scm>
         <connection>scm:git:git@github.com:johtani/elasticsearch-extended-analyze.git</connection>
-        <developerConnection>scm:git:git@github.com:johtani/elasticsearch-extended-analyze.git
-        </developerConnection>
-        <url>http://github.com/johtani/elasticsearch-extended-analyze</url>
+        <developerConnection>scm:git:git@github.com:johtani/elasticsearch-extended-analyze.git</developerConnection>
+        <url>https://github.com/johtani/elasticsearch-extended-analyze</url>
     </scm>
 
 

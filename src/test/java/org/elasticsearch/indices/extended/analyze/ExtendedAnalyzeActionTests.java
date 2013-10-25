@@ -9,6 +9,8 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.Map;
+
 import static org.elasticsearch.common.settings.ImmutableSettings.*;
 import static org.elasticsearch.node.NodeBuilder.*;
 import static org.hamcrest.MatcherAssert.*;
@@ -48,7 +50,15 @@ public class ExtendedAnalyzeActionTests {
         assertThat(analyzeResponse.getTokens().size(), equalTo(3));
         assertThat(analyzeResponse.getTokens().get(2).getTerm(), equalTo("troubl"));
         assertThat(analyzeResponse.getTokens().get(2).getExtendedAttrbutes().size(), equalTo(2));
-        System.out.println(analyzeResponse.getTokens().get(2).getExtendedAttrbutes());
+        String[] expectedAttributesKey = {
+            "org.apache.lucene.analysis.tokenattributes.TermToBytesRefAttribute#bytes",
+            "org.apache.lucene.analysis.tokenattributes.KeywordAttribute#keyword"};
+        Map<String, Object> extendedAttribute = null;
+        for(int i=0;i<expectedAttributesKey.length;i++){
+            extendedAttribute = (Map<String, Object>)analyzeResponse.getTokens().get(2).getExtendedAttrbutes().get(i);
+            assertThat(extendedAttribute.size(), equalTo(1));
+            assertThat(extendedAttribute.containsKey(expectedAttributesKey[i]), equalTo(true));
+        }
     }
 
     private ExtendedAnalyzeRequestBuilder prepareAnalyze(IndicesAdminClient client, String text) {
