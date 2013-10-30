@@ -201,6 +201,10 @@ public class TransportExtendedAnalyzeAction extends TransportSingleCustomOperati
         List<ExtendedAnalyzeResponse.ExtendedAnalyzeToken> tokens = Lists.newArrayList();
         TokenStream stream = null;
         try {
+
+            //TODO if analyze instance of CustomAnalyzer, divide chafilters and tokenizer, tokenfilters
+            //and each tokens output
+
             stream = analyzer.tokenStream(field, request.text());
             stream.reset();
             CharTermAttribute term = stream.addAttribute(CharTermAttribute.class);
@@ -237,13 +241,14 @@ public class TransportExtendedAnalyzeAction extends TransportSingleCustomOperati
     }
 
     /**
-     * other attribute extract object
+     * other attribute extract object.<br/>
+     * Extracted object group by AttributeClassName
      *
-     * @param stream
-     * @return
+     * @param stream current TokenStream
+     * @return Nested Object : Map<attrClass, Map<key, value>>
      */
-    private List<Object> extractExtendedAttributes(TokenStream stream) {
-        final List<Object> extendedAttributes = Lists.newArrayList();
+    private Map<String, Map<String, Object>>extractExtendedAttributes(TokenStream stream) {
+        final Map<String, Map<String, Object>> extendedAttributes = Maps.newTreeMap();
 
         stream.reflectWith(new AttributeReflector() {
             @Override
@@ -257,15 +262,17 @@ public class TransportExtendedAnalyzeAction extends TransportSingleCustomOperati
                 if (TypeAttribute.class.isAssignableFrom(attClass))
                     return;
 
-                String k = attClass.getName() + '#' + key;
+                Map<String, Object> currentAttributes = extendedAttributes.get(attClass.getName());
+                if(currentAttributes == null){
+                    currentAttributes = Maps.newHashMap();
+                }
 
                 if (value instanceof BytesRef) {
                     final BytesRef p = (BytesRef) value;
                     value = p.toString();
                 }
-                Map<String, Object> attObj = Maps.newHashMap();
-                attObj.put(k, value);
-                extendedAttributes.add(attObj);
+                currentAttributes.put(key, value);
+                extendedAttributes.put(attClass.getName(), currentAttributes);
             }
         });
 

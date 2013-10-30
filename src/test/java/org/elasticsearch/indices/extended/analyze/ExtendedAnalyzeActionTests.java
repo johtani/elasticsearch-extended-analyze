@@ -70,10 +70,13 @@ public class ExtendedAnalyzeActionTests {
             "org.apache.lucene.analysis.tokenattributes.TermToBytesRefAttribute#bytes",
             "org.apache.lucene.analysis.tokenattributes.KeywordAttribute#keyword"};
         Map<String, Object> extendedAttribute = null;
+
         for (int i = 0; i < expectedAttributesKey.length; i++) {
-            extendedAttribute = (Map<String, Object>) analyzeResponse.getTokens().get(2).getExtendedAttrbutes().get(i);
+            String attClassName = expectedAttributesKey[i].substring(0,expectedAttributesKey[i].indexOf("#"));
+            String key = expectedAttributesKey[i].substring(expectedAttributesKey[i].indexOf("#")+1);
+            extendedAttribute = (Map<String, Object>) analyzeResponse.getTokens().get(2).getExtendedAttrbutes().get(attClassName);
             assertThat(extendedAttribute.size(), equalTo(1));
-            assertThat(extendedAttribute.containsKey(expectedAttributesKey[i]), equalTo(true));
+            assertThat(extendedAttribute.containsKey(key), equalTo(true));
         }
     }
 

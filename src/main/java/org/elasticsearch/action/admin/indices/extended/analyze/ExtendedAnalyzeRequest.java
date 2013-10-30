@@ -42,6 +42,9 @@ public class ExtendedAnalyzeRequest extends SingleCustomOperationRequest<Extende
 
     private String field;
 
+    /**
+     * specified output attribute names
+     */
     private String[] attributes;
 
     ExtendedAnalyzeRequest() {

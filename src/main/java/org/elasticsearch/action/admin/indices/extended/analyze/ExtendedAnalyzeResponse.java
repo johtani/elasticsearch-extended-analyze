@@ -12,6 +12,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Created with IntelliJ IDEA.
@@ -28,12 +29,12 @@ public class ExtendedAnalyzeResponse extends ActionResponse implements Iterable<
         private int endOffset;
         private int position;
         private String type;
-        private List<Object> extendedAttributes;
+        private Map<String, Map<String,Object>> extendedAttributes;
 
         ExtendedAnalyzeToken() {
         }
 
-        public ExtendedAnalyzeToken(String term, int position, int startOffset, int endOffset, String type, List<Object> extendedAttributes) {
+        public ExtendedAnalyzeToken(String term, int position, int startOffset, int endOffset, String type, Map<String, Map<String, Object>> extendedAttributes) {
             this.term = term;
             this.position = position;
             this.startOffset = startOffset;
@@ -62,7 +63,7 @@ public class ExtendedAnalyzeResponse extends ActionResponse implements Iterable<
             return this.type;
         }
 
-        public List<Object> getExtendedAttrbutes() {
+        public Map<String, Map<String, Object>> getExtendedAttrbutes() {
             return this.extendedAttributes;
         }
 
@@ -79,7 +80,7 @@ public class ExtendedAnalyzeResponse extends ActionResponse implements Iterable<
             endOffset = in.readInt();
             position = in.readVInt();
             type = in.readOptionalString();
-            extendedAttributes = (List<Object>) in.readGenericValue();
+            extendedAttributes = (Map<String, Map<String, Object>>) in.readGenericValue();
         }
 
         @Override
