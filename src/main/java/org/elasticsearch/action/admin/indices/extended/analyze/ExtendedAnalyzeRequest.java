@@ -31,21 +31,19 @@ import static org.elasticsearch.action.ValidateActions.*;
 public class ExtendedAnalyzeRequest extends SingleCustomOperationRequest<ExtendedAnalyzeRequest> {
 
     private String index;
-
     private String text;
-
     private String analyzer;
-
     private String tokenizer;
-
     private String[] tokenFilters;
-
     private String field;
-
     /**
      * specified output attribute names
      */
     private String[] attributes;
+    /**
+     * output all tokenChain tokens
+     */
+    private boolean tokenChain = false;
 
     ExtendedAnalyzeRequest() {
 
@@ -111,6 +109,11 @@ public class ExtendedAnalyzeRequest extends SingleCustomOperationRequest<Extende
         return this.tokenFilters;
     }
 
+    public ExtendedAnalyzeRequest attributes(String... attributes) {
+        this.attributes = attributes;
+        return this;
+    }
+
     public String[] attributes() {
         return this.attributes;
     }
@@ -122,6 +125,15 @@ public class ExtendedAnalyzeRequest extends SingleCustomOperationRequest<Extende
 
     public String field() {
         return this.field;
+    }
+
+    public boolean tokenChain() {
+        return this.tokenChain;
+    }
+
+    public ExtendedAnalyzeRequest tokenChain(boolean tokenChain) {
+        this.tokenChain = tokenChain;
+        return this;
     }
 
     @Override
@@ -148,7 +160,14 @@ public class ExtendedAnalyzeRequest extends SingleCustomOperationRequest<Extende
             }
         }
         field = in.readOptionalString();
-        //FIXME how to specify attributes option param
+        tokenChain = in.readBoolean();
+        int attSize = in.readVInt();
+        if (size > 0) {
+            attributes = new String[attSize];
+            for (int i = 0; i < attSize; i++) {
+                attributes[i] = in.readString();
+            }
+        }
     }
 
     @Override
@@ -167,6 +186,14 @@ public class ExtendedAnalyzeRequest extends SingleCustomOperationRequest<Extende
             }
         }
         out.writeOptionalString(field);
-        //FIXME how to specify attributes option param
+        out.writeBoolean(tokenChain);
+        if (attributes == null) {
+            out.writeVInt(0);
+        } else {
+            out.writeVInt(attributes.length);
+            for (String attribute : attributes) {
+                out.writeString(attribute);
+            }
+        }
     }
 }

@@ -49,6 +49,8 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
 import java.io.IOException;
+import java.io.Reader;
+import java.io.StringReader;
 import java.util.List;
 import java.util.Map;
 
@@ -198,30 +200,58 @@ public class TransportExtendedAnalyzeAction extends TransportSingleCustomOperati
             throw new ElasticSearchIllegalArgumentException("failed to find analyzer");
         }
 
-        List<ExtendedAnalyzeResponse.ExtendedAnalyzeToken> tokens = Lists.newArrayList();
+        ExtendedAnalyzeResponse response = buildResponse(request, analyzer, closeAnalyzer, field);
+
+        return response;
+    }
+
+    private ExtendedAnalyzeResponse buildResponse(ExtendedAnalyzeRequest request, Analyzer analyzer, boolean closeAnalyzer, String field) {
+        ExtendedAnalyzeResponse response = new ExtendedAnalyzeResponse();
         TokenStream stream = null;
+        List<ExtendedAnalyzeResponse.ExtendedAnalyzeToken> tokens = null;
+
         try {
+            if (analyzer instanceof CustomAnalyzer) {
+                // customAnalyzer = divide chafilter, tokenizer tokenfilters
+                CustomAnalyzer customAnalyzer = (CustomAnalyzer) analyzer;
+                CharFilterFactory[] charfilters = customAnalyzer.charFilters();
+                TokenizerFactory tokenizer = customAnalyzer.tokenizerFactory();
+                TokenFilterFactory[] tokenfilters = customAnalyzer.tokenFilters();
 
-            //TODO if analyze instance of CustomAnalyzer, divide chafilters and tokenizer, tokenfilters
-            //and each tokens output
-
-            stream = analyzer.tokenStream(field, request.text());
-            stream.reset();
-            CharTermAttribute term = stream.addAttribute(CharTermAttribute.class);
-            PositionIncrementAttribute posIncr = stream.addAttribute(PositionIncrementAttribute.class);
-            OffsetAttribute offset = stream.addAttribute(OffsetAttribute.class);
-            TypeAttribute type = stream.addAttribute(TypeAttribute.class);
-
-            int position = 0;
-            while (stream.incrementToken()) {
-                int increment = posIncr.getPositionIncrement();
-                if (increment > 0) {
-                    position = position + increment;
+                String source = request.text();
+                if(charfilters != null){
+                    for(CharFilterFactory charfilter : charfilters){
+                        Reader reader = new StringReader(source);
+                        reader = charfilter.create(reader);
+                        source = writeCharStream(reader);
+                    }
                 }
 
-                tokens.add(new ExtendedAnalyzeResponse.ExtendedAnalyzeToken(term.toString(), position, offset.startOffset(), offset.endOffset(), type.type(), extractExtendedAttributes(stream)));
+                stream = tokenizer.create(new StringReader(source));
+                response.customAnalyzer(true).tokenizer(new ExtendedAnalyzeResponse.ExtendedAnalyzeTokenList(tokenizer.name(), processAnalysis(stream)));
+
+                //FIXME tokenfilters
+                // FIXME !! currently, no output tokenfilters.
+                if(tokenfilters != null){
+                    for(TokenFilterFactory tokenfilter : tokenfilters){
+                        stream = tokenfilter.create(stream);
+                        response.addTokenfilter(new ExtendedAnalyzeResponse.ExtendedAnalyzeTokenList(tokenfilter.name(), processAnalysis(stream)));
+                        //FIXME implement freeseStage
+                    }
+
+                }
+
+            } else {
+                stream = analyzer.tokenStream(field, request.text());
+                String name = null;
+                if(analyzer instanceof NamedAnalyzer){
+                    name = ((NamedAnalyzer)analyzer).name();
+                }else{
+                    name = analyzer.getClass().getName();
+                }
+                response.customAnalyzer(false).analyzer(new ExtendedAnalyzeResponse.ExtendedAnalyzeTokenList(name, processAnalysis(stream)));
+
             }
-            stream.end();
         } catch (IOException e) {
             throw new ElasticSearchException("failed to analyze", e);
         } finally {
@@ -235,9 +265,56 @@ public class TransportExtendedAnalyzeAction extends TransportSingleCustomOperati
             if (closeAnalyzer) {
                 analyzer.close();
             }
+
         }
 
-        return new ExtendedAnalyzeResponse(tokens);
+        return response;
+    }
+
+
+    //FIXME input ExtendedAnalyzeToken for outputs
+    private String writeCharStream(Reader input ){
+        final int BUFFER_SIZE = 1024;
+        char[] buf = new char[BUFFER_SIZE];
+        int len = 0;
+        StringBuilder sb = new StringBuilder();
+        do {
+            try {
+                len = input.read( buf, 0, BUFFER_SIZE );
+            } catch (IOException e) {
+                throw new ElasticSearchException("failed to analyze (charfiltering)", e);
+            }
+            if( len > 0 )
+                sb.append(buf, 0, len);
+        } while( len == BUFFER_SIZE );
+        // FIXME create ExtendedAnalyzeToken
+        return sb.toString();
+    }
+
+    private List<ExtendedAnalyzeResponse.ExtendedAnalyzeToken> processAnalysis(TokenStream stream) throws IOException{
+        List<ExtendedAnalyzeResponse.ExtendedAnalyzeToken> tokens = Lists.newArrayList();
+        stream.reset();
+
+        //TODO if analyze instance of CustomAnalyzer, divide chafilters and tokenizer, tokenfilters
+        //and each tokens output
+
+        CharTermAttribute term = stream.addAttribute(CharTermAttribute.class);
+        PositionIncrementAttribute posIncr = stream.addAttribute(PositionIncrementAttribute.class);
+        OffsetAttribute offset = stream.addAttribute(OffsetAttribute.class);
+        TypeAttribute type = stream.addAttribute(TypeAttribute.class);
+
+        int position = 0;
+        while (stream.incrementToken()) {
+            int increment = posIncr.getPositionIncrement();
+            if (increment > 0) {
+                position = position + increment;
+            }
+
+            tokens.add(new ExtendedAnalyzeResponse.ExtendedAnalyzeToken(term.toString(), position, offset.startOffset(), offset.endOffset(), type.type(), extractExtendedAttributes(stream)));
+        }
+        stream.end();
+        return tokens;
+
     }
 
     /**
@@ -247,7 +324,7 @@ public class TransportExtendedAnalyzeAction extends TransportSingleCustomOperati
      * @param stream current TokenStream
      * @return Nested Object : Map<attrClass, Map<key, value>>
      */
-    private Map<String, Map<String, Object>>extractExtendedAttributes(TokenStream stream) {
+    private Map<String, Map<String, Object>> extractExtendedAttributes(TokenStream stream) {
         final Map<String, Map<String, Object>> extendedAttributes = Maps.newTreeMap();
 
         stream.reflectWith(new AttributeReflector() {
@@ -263,7 +340,7 @@ public class TransportExtendedAnalyzeAction extends TransportSingleCustomOperati
                     return;
 
                 Map<String, Object> currentAttributes = extendedAttributes.get(attClass.getName());
-                if(currentAttributes == null){
+                if (currentAttributes == null) {
                     currentAttributes = Maps.newHashMap();
                 }
 

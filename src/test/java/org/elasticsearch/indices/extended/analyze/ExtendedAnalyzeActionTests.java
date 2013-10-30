@@ -21,6 +21,7 @@ import org.elasticsearch.action.admin.indices.extended.analyze.ExtendedAnalyzeRe
 import org.elasticsearch.client.IndicesAdminClient;
 import org.elasticsearch.common.network.NetworkUtils;
 import org.elasticsearch.node.Node;
+import org.hamcrest.core.IsNull;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -53,19 +54,41 @@ public class ExtendedAnalyzeActionTests {
     }
 
     @Test
-    public void analyzeWithNoIndex() throws Exception {
+    public void analyzeUsingAnalyzerWithNoIndex() throws Exception {
 
         ExtendedAnalyzeResponse analyzeResponse = prepareAnalyze(node.client().admin().indices(), "THIS IS A TEST").setAnalyzer("simple").execute().actionGet();
-        assertThat(analyzeResponse.getTokens().size(), equalTo(4));
+        assertThat(analyzeResponse.tokenizer(), IsNull.nullValue());
+        assertThat(analyzeResponse.tokenfilters(), IsNull.nullValue());
+        //FIxME charfilter is null test
+        assertThat(analyzeResponse.analyzer().getName(), equalTo("simple"));
+        assertThat(analyzeResponse.analyzer().getTokens().size(), equalTo(4));
 
-        analyzeResponse = prepareAnalyze(node.client().admin().indices(), "THIS IS A TEST").setTokenizer("keyword").setTokenFilters("lowercase").execute().actionGet();
-        assertThat(analyzeResponse.getTokens().size(), equalTo(1));
-        assertThat(analyzeResponse.getTokens().get(0).getTerm(), equalTo("this is a test"));
+    }
 
+    @Test
+    public void analyzeUsingCustomAnalyzerWithNoIndex() throws Exception{
+        ExtendedAnalyzeResponse analyzeResponse = prepareAnalyze(node.client().admin().indices(), "THIS IS A TEST").setTokenizer("keyword").setTokenFilters("lowercase").execute().actionGet();
+        assertThat(analyzeResponse.analyzer(), IsNull.nullValue());
+        //FIXME charfilter test
+        //tokenizer
+        assertThat(analyzeResponse.tokenizer().getName(), equalTo("keyword"));
+        assertThat(analyzeResponse.tokenizer().getTokens().size(), equalTo(1));
+        assertThat(analyzeResponse.tokenizer().getTokens().get(0).getTerm(), equalTo("THIS IS A TEST"));
+        //tokenfilters
+        assertThat(analyzeResponse.tokenfilters().size(), equalTo(1));
+        assertThat(analyzeResponse.tokenfilters().get(0).getName(), equalTo("lowercase"));
+        assertThat(analyzeResponse.tokenfilters().get(0).getTokens().size(), equalTo(1));
+        assertThat(analyzeResponse.tokenfilters().get(0).getTokens().get(0).getTerm(), equalTo("this is a test"));
+
+
+        //check other attributes
         analyzeResponse = prepareAnalyze(node.client().admin().indices(), "This is troubled").setTokenizer("standard").setTokenFilters("snowball").execute().actionGet();
-        assertThat(analyzeResponse.getTokens().size(), equalTo(3));
-        assertThat(analyzeResponse.getTokens().get(2).getTerm(), equalTo("troubl"));
-        assertThat(analyzeResponse.getTokens().get(2).getExtendedAttrbutes().size(), equalTo(2));
+
+        assertThat(analyzeResponse.tokenfilters().size(), equalTo(1));
+        assertThat(analyzeResponse.tokenfilters().get(0).getName(), equalTo("snowball"));
+        assertThat(analyzeResponse.tokenfilters().get(0).getTokens().size(), equalTo(3));
+        assertThat(analyzeResponse.tokenfilters().get(0).getTokens().get(2).getTerm(), equalTo("troubl"));
+        assertThat(analyzeResponse.tokenfilters().get(0).getTokens().get(2).getExtendedAttrbutes().size(), equalTo(2));
         String[] expectedAttributesKey = {
             "org.apache.lucene.analysis.tokenattributes.TermToBytesRefAttribute#bytes",
             "org.apache.lucene.analysis.tokenattributes.KeywordAttribute#keyword"};
@@ -74,10 +97,11 @@ public class ExtendedAnalyzeActionTests {
         for (int i = 0; i < expectedAttributesKey.length; i++) {
             String attClassName = expectedAttributesKey[i].substring(0,expectedAttributesKey[i].indexOf("#"));
             String key = expectedAttributesKey[i].substring(expectedAttributesKey[i].indexOf("#")+1);
-            extendedAttribute = (Map<String, Object>) analyzeResponse.getTokens().get(2).getExtendedAttrbutes().get(attClassName);
+            extendedAttribute = (Map<String, Object>) analyzeResponse.tokenfilters().get(0).getTokens().get(2).getExtendedAttrbutes().get(attClassName);
             assertThat(extendedAttribute.size(), equalTo(1));
             assertThat(extendedAttribute.containsKey(key), equalTo(true));
         }
+
     }
 
     private ExtendedAnalyzeRequestBuilder prepareAnalyze(IndicesAdminClient client, String text) {

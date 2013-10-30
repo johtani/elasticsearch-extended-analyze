@@ -2,6 +2,7 @@ package org.elasticsearch.action.admin.indices.extended.analyze;
 
 
 import org.elasticsearch.action.ActionResponse;
+import org.elasticsearch.common.collect.Lists;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Streamable;
@@ -15,13 +16,180 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Created with IntelliJ IDEA.
- * User: johtani
- * Date: 2013/10/25
- * Time: 0:44
- * To change this template use File | Settings | File Templates.
  */
-public class ExtendedAnalyzeResponse extends ActionResponse implements Iterable<ExtendedAnalyzeResponse.ExtendedAnalyzeToken>, ToXContent {
+public class ExtendedAnalyzeResponse extends ActionResponse implements ToXContent {
+
+    private ExtendedAnalyzeTokenList analyzer;
+    //FIXME response object for charfilter
+    private ExtendedAnalyzeTokenList tokenizer;
+    private List<ExtendedAnalyzeTokenList> tokenfilters;
+    private boolean customAnalyzer = false;
+
+    ExtendedAnalyzeResponse() {
+    }
+
+    public ExtendedAnalyzeResponse(boolean customAnalyzer, ExtendedAnalyzeTokenList analyzer, ExtendedAnalyzeTokenList tokenizer, List<ExtendedAnalyzeTokenList> tokenfilters) {
+        this.analyzer = analyzer;
+        this.tokenizer = tokenizer;
+        this.tokenfilters = tokenfilters;
+        this.customAnalyzer = customAnalyzer;
+    }
+
+    public ExtendedAnalyzeTokenList analyzer() {
+        return this.analyzer;
+    }
+
+    public ExtendedAnalyzeResponse analyzer(ExtendedAnalyzeTokenList analyzer) {
+        this.analyzer = analyzer;
+        return this;
+    }
+
+    public ExtendedAnalyzeTokenList tokenizer() {
+        return this.tokenizer;
+    }
+
+    public ExtendedAnalyzeResponse tokenizer(ExtendedAnalyzeTokenList tokenizer) {
+        this.tokenizer = tokenizer;
+        return this;
+    }
+
+    public List<ExtendedAnalyzeTokenList> tokenfilters() {
+        return this.tokenfilters;
+    }
+
+    public ExtendedAnalyzeResponse addTokenfilter(ExtendedAnalyzeTokenList tokenfilter) {
+        if (tokenfilters == null) {
+            tokenfilters = Lists.newArrayList(tokenfilter);
+        } else {
+            tokenfilters.add(tokenfilter);
+        }
+        return this;
+    }
+
+    public boolean customAnalyzer() {
+        return this.customAnalyzer;
+    }
+
+    public ExtendedAnalyzeResponse customAnalyzer(boolean customAnalyzer) {
+        this.customAnalyzer = customAnalyzer;
+        return this;
+    }
+
+    private XContentBuilder toXContentExtendedAnalyzeTokenList(XContentBuilder builder, ExtendedAnalyzeTokenList list) throws IOException {
+        builder.startArray(list.name);
+        for (ExtendedAnalyzeToken token : list.getTokens()) {
+            builder.startObject();
+            builder.field("token", token.getTerm());
+            builder.field("start_offset", token.getStartOffset());
+            builder.field("end_offset", token.getEndOffset());
+            builder.field("type", token.getType());
+            builder.field("position", token.getPosition());
+            builder.field("extended_attributes", token.getExtendedAttrbutes());
+            builder.endObject();
+        }
+        builder.endArray();
+        return builder;
+    }
+
+    @Override
+    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
+        builder.field("custom_analyzer", this.customAnalyzer);
+
+        if (analyzer != null) {
+            builder.startObject("analyzer");
+            toXContentExtendedAnalyzeTokenList(builder, analyzer);
+            builder.endObject();
+        }
+
+        if (tokenizer != null) {
+            builder.startObject("tokenizer");
+            toXContentExtendedAnalyzeTokenList(builder, tokenizer);
+            builder.endObject();
+        }
+
+        if (tokenfilters != null && !tokenfilters.isEmpty()) {
+            builder.startArray("tokenfilters");
+            for (ExtendedAnalyzeTokenList tokenfilter : tokenfilters) {
+                builder.startObject();
+                toXContentExtendedAnalyzeTokenList(builder, tokenfilter);
+                builder.endObject();
+            }
+            builder.endArray();
+
+        }
+        return builder;
+    }
+
+    @Override
+    public void readFrom(StreamInput in) throws IOException {
+        super.readFrom(in);
+        customAnalyzer = in.readBoolean();
+        analyzer = ExtendedAnalyzeTokenList.readExtendedAnalyzeTokenList(in);
+        tokenizer = ExtendedAnalyzeTokenList.readExtendedAnalyzeTokenList(in);
+        int size = in.readVInt();
+        tokenfilters = new ArrayList<ExtendedAnalyzeTokenList>(size);
+        for (int i = 0; i < size; i++) {
+            tokenfilters.add(ExtendedAnalyzeTokenList.readExtendedAnalyzeTokenList(in));
+        }
+    }
+
+    @Override
+    public void writeTo(StreamOutput out) throws IOException {
+        super.writeTo(out);
+        out.writeBoolean(customAnalyzer);
+        analyzer.writeTo(out);
+        tokenizer.writeTo(out);
+        out.writeVInt(tokenfilters.size());
+        for (ExtendedAnalyzeTokenList tokenList : tokenfilters) {
+            tokenList.writeTo(out);
+        }
+    }
+
+    public static class ExtendedAnalyzeTokenList implements Streamable {
+        private List<ExtendedAnalyzeToken> tokens;
+        private String name;
+
+        ExtendedAnalyzeTokenList() {
+        }
+
+        public ExtendedAnalyzeTokenList(String name, List<ExtendedAnalyzeToken> tokens) {
+            this.name = name;
+            this.tokens = tokens;
+        }
+
+        public static ExtendedAnalyzeTokenList readExtendedAnalyzeTokenList(StreamInput in) throws IOException {
+            ExtendedAnalyzeTokenList list = new ExtendedAnalyzeTokenList();
+            list.readFrom(in);
+            return list;
+        }
+
+        public String getName() {
+            return this.name;
+        }
+
+        public List<ExtendedAnalyzeToken> getTokens() {
+            return tokens;
+        }
+
+        @Override
+        public void readFrom(StreamInput in) throws IOException {
+            name = in.readString();
+            int size = in.readVInt();
+            tokens = new ArrayList<ExtendedAnalyzeToken>(size);
+            for (int i = 0; i < size; i++) {
+                tokens.add(ExtendedAnalyzeToken.readExtendedAnalyzeToken(in));
+            }
+        }
+
+        @Override
+        public void writeTo(StreamOutput out) throws IOException {
+            out.writeString(name);
+            out.writeVInt(tokens.size());
+            for (ExtendedAnalyzeToken token : tokens) {
+                token.writeTo(out);
+            }
+        }
+    }
 
     public static class ExtendedAnalyzeToken implements Streamable {
         private String term;
@@ -29,7 +197,7 @@ public class ExtendedAnalyzeResponse extends ActionResponse implements Iterable<
         private int endOffset;
         private int position;
         private String type;
-        private Map<String, Map<String,Object>> extendedAttributes;
+        private Map<String, Map<String, Object>> extendedAttributes;
 
         ExtendedAnalyzeToken() {
         }
@@ -41,6 +209,12 @@ public class ExtendedAnalyzeResponse extends ActionResponse implements Iterable<
             this.endOffset = endOffset;
             this.type = type;
             this.extendedAttributes = extendedAttributes;
+        }
+
+        public static ExtendedAnalyzeToken readExtendedAnalyzeToken(StreamInput in) throws IOException {
+            ExtendedAnalyzeToken analyzeToken = new ExtendedAnalyzeToken();
+            analyzeToken.readFrom(in);
+            return analyzeToken;
         }
 
         public String getTerm() {
@@ -67,12 +241,6 @@ public class ExtendedAnalyzeResponse extends ActionResponse implements Iterable<
             return this.extendedAttributes;
         }
 
-        public static ExtendedAnalyzeToken readExtendedAnalyzeToken(StreamInput in) throws IOException {
-            ExtendedAnalyzeToken analyzeToken = new ExtendedAnalyzeToken();
-            analyzeToken.readFrom(in);
-            return analyzeToken;
-        }
-
         @Override
         public void readFrom(StreamInput in) throws IOException {
             term = in.readString();
@@ -91,61 +259,6 @@ public class ExtendedAnalyzeResponse extends ActionResponse implements Iterable<
             out.writeVInt(position);
             out.writeOptionalString(type);
             out.writeGenericValue(extendedAttributes);
-        }
-    }
-
-
-    private List<ExtendedAnalyzeToken> tokens;
-
-    ExtendedAnalyzeResponse() {
-    }
-
-    public ExtendedAnalyzeResponse(List<ExtendedAnalyzeToken> tokens) {
-        this.tokens = tokens;
-    }
-
-    public List<ExtendedAnalyzeToken> getTokens() {
-        return this.tokens;
-    }
-
-    @Override
-    public Iterator<ExtendedAnalyzeToken> iterator() {
-        return tokens.iterator();
-    }
-
-    @Override
-    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        builder.startArray("tokens");
-        for (ExtendedAnalyzeToken token : tokens) {
-            builder.startObject();
-            builder.field("token", token.getTerm());
-            builder.field("start_offset", token.getStartOffset());
-            builder.field("end_offset", token.getEndOffset());
-            builder.field("type", token.getType());
-            builder.field("position", token.getPosition());
-            builder.field("extended_attributes", token.getExtendedAttrbutes());
-            builder.endObject();
-        }
-        builder.endArray();
-        return builder;
-    }
-
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
-        int size = in.readVInt();
-        tokens = new ArrayList<ExtendedAnalyzeToken>(size);
-        for (int i = 0; i < size; i++) {
-            tokens.add(ExtendedAnalyzeToken.readExtendedAnalyzeToken(in));
-        }
-    }
-
-    @Override
-    public void writeTo(StreamOutput out) throws IOException {
-        super.writeTo(out);
-        out.writeVInt(tokens.size());
-        for (ExtendedAnalyzeToken token : tokens) {
-            token.writeTo(out);
         }
     }
 }
