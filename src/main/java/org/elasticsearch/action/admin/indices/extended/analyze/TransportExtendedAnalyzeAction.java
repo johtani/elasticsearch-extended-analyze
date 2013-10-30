@@ -24,6 +24,7 @@ import org.apache.lucene.analysis.tokenattributes.PositionIncrementAttribute;
 import org.apache.lucene.analysis.tokenattributes.TypeAttribute;
 import org.apache.lucene.util.Attribute;
 import org.apache.lucene.util.AttributeReflector;
+import org.apache.lucene.util.AttributeSource;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.ElasticSearchException;
 import org.elasticsearch.ElasticSearchIllegalArgumentException;
@@ -51,6 +52,7 @@ import org.elasticsearch.transport.TransportService;
 import java.io.IOException;
 import java.io.Reader;
 import java.io.StringReader;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -219,8 +221,8 @@ public class TransportExtendedAnalyzeAction extends TransportSingleCustomOperati
                 TokenFilterFactory[] tokenfilters = customAnalyzer.tokenFilters();
 
                 String source = request.text();
-                if(charfilters != null){
-                    for(CharFilterFactory charfilter : charfilters){
+                if (charfilters != null) {
+                    for (CharFilterFactory charfilter : charfilters) {
                         Reader reader = new StringReader(source);
                         reader = charfilter.create(reader);
                         source = writeCharStream(reader);
@@ -232,11 +234,14 @@ public class TransportExtendedAnalyzeAction extends TransportSingleCustomOperati
 
                 //FIXME tokenfilters
                 // FIXME !! currently, no output tokenfilters.
-                if(tokenfilters != null){
-                    for(TokenFilterFactory tokenfilter : tokenfilters){
-                        stream = tokenfilter.create(stream);
-                        response.addTokenfilter(new ExtendedAnalyzeResponse.ExtendedAnalyzeTokenList(tokenfilter.name(), processAnalysis(stream)));
+                if (tokenfilters != null) {
+
+                    for(int i=0;i<tokenfilters.length;i++){
+                        stream = createStackedTokenStream(source, tokenizer, tokenfilters, i+1);
+                        response.addTokenfilter(new ExtendedAnalyzeResponse.ExtendedAnalyzeTokenList(tokenfilters[i].name(), processAnalysis(stream)));
                         //FIXME implement freeseStage
+
+                        stream.close();
                     }
 
                 }
@@ -244,9 +249,9 @@ public class TransportExtendedAnalyzeAction extends TransportSingleCustomOperati
             } else {
                 stream = analyzer.tokenStream(field, request.text());
                 String name = null;
-                if(analyzer instanceof NamedAnalyzer){
-                    name = ((NamedAnalyzer)analyzer).name();
-                }else{
+                if (analyzer instanceof NamedAnalyzer) {
+                    name = ((NamedAnalyzer) analyzer).name();
+                } else {
                     name = analyzer.getClass().getName();
                 }
                 response.customAnalyzer(false).analyzer(new ExtendedAnalyzeResponse.ExtendedAnalyzeTokenList(name, processAnalysis(stream)));
@@ -272,26 +277,36 @@ public class TransportExtendedAnalyzeAction extends TransportSingleCustomOperati
     }
 
 
+    // TODO : need to improve this method... like solr's technique
+    private TokenStream createStackedTokenStream(String charFilteredSource, TokenizerFactory tokenizer, TokenFilterFactory[] tokenfilters, int current){
+        TokenStream tokenStream = tokenizer.create(new StringReader(charFilteredSource));
+        for(int i = 0;i<current;i++){
+            tokenStream = tokenfilters[i].create(tokenStream);
+        }
+
+        return tokenStream;
+    }
+
     //FIXME input ExtendedAnalyzeToken for outputs
-    private String writeCharStream(Reader input ){
+    private String writeCharStream(Reader input) {
         final int BUFFER_SIZE = 1024;
         char[] buf = new char[BUFFER_SIZE];
         int len = 0;
         StringBuilder sb = new StringBuilder();
         do {
             try {
-                len = input.read( buf, 0, BUFFER_SIZE );
+                len = input.read(buf, 0, BUFFER_SIZE);
             } catch (IOException e) {
                 throw new ElasticSearchException("failed to analyze (charfiltering)", e);
             }
-            if( len > 0 )
+            if (len > 0)
                 sb.append(buf, 0, len);
-        } while( len == BUFFER_SIZE );
+        } while (len == BUFFER_SIZE);
         // FIXME create ExtendedAnalyzeToken
         return sb.toString();
     }
 
-    private List<ExtendedAnalyzeResponse.ExtendedAnalyzeToken> processAnalysis(TokenStream stream) throws IOException{
+    private List<ExtendedAnalyzeResponse.ExtendedAnalyzeToken> processAnalysis(TokenStream stream) throws IOException {
         List<ExtendedAnalyzeResponse.ExtendedAnalyzeToken> tokens = Lists.newArrayList();
         stream.reset();
 
@@ -355,5 +370,6 @@ public class TransportExtendedAnalyzeAction extends TransportSingleCustomOperati
 
         return extendedAttributes;
     }
+
 }
 
