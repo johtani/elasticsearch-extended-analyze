@@ -234,8 +234,8 @@ public class TransportExtendedAnalyzeAction extends TransportSingleCustomOperati
                 // FIXME !! currently, no output tokenfilters.
                 if (tokenfilters != null) {
 
-                    for(int i=0;i<tokenfilters.length;i++){
-                        stream = createStackedTokenStream(source, tokenizer, tokenfilters, i+1);
+                    for (int i = 0; i < tokenfilters.length; i++) {
+                        stream = createStackedTokenStream(source, tokenizer, tokenfilters, i + 1);
                         response.addTokenfilter(new ExtendedAnalyzeResponse.ExtendedAnalyzeTokenList(tokenfilters[i].name(), processAnalysis(stream)));
                         //FIXME implement freeseStage
 
@@ -276,9 +276,9 @@ public class TransportExtendedAnalyzeAction extends TransportSingleCustomOperati
 
 
     // TODO : need to improve this method... like solr's technique
-    private TokenStream createStackedTokenStream(String charFilteredSource, TokenizerFactory tokenizer, TokenFilterFactory[] tokenfilters, int current){
+    private TokenStream createStackedTokenStream(String charFilteredSource, TokenizerFactory tokenizer, TokenFilterFactory[] tokenfilters, int current) {
         TokenStream tokenStream = tokenizer.create(new StringReader(charFilteredSource));
-        for(int i = 0;i<current;i++){
+        for (int i = 0; i < current; i++) {
             tokenStream = tokenfilters[i].create(tokenStream);
         }
 

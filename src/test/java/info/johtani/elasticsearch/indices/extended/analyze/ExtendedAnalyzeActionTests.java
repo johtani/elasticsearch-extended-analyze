@@ -67,7 +67,7 @@ public class ExtendedAnalyzeActionTests {
     }
 
     @Test
-    public void analyzeUsingCustomAnalyzerWithNoIndex() throws Exception{
+    public void analyzeUsingCustomAnalyzerWithNoIndex() throws Exception {
         ExtendedAnalyzeResponse analyzeResponse = prepareAnalyze(node.client().admin().indices(), "THIS IS A TEST").setTokenizer("keyword").setTokenFilters("lowercase").execute().actionGet();
         assertThat(analyzeResponse.analyzer(), IsNull.nullValue());
         //FIXME charfilter test
@@ -96,8 +96,8 @@ public class ExtendedAnalyzeActionTests {
         Map<String, Object> extendedAttribute = null;
 
         for (int i = 0; i < expectedAttributesKey.length; i++) {
-            String attClassName = expectedAttributesKey[i].substring(0,expectedAttributesKey[i].indexOf("#"));
-            String key = expectedAttributesKey[i].substring(expectedAttributesKey[i].indexOf("#")+1);
+            String attClassName = expectedAttributesKey[i].substring(0, expectedAttributesKey[i].indexOf("#"));
+            String key = expectedAttributesKey[i].substring(expectedAttributesKey[i].indexOf("#") + 1);
             extendedAttribute = (Map<String, Object>) analyzeResponse.tokenfilters().get(0).getTokens().get(2).getExtendedAttrbutes().get(attClassName);
             assertThat(extendedAttribute.size(), equalTo(1));
             assertThat(extendedAttribute.containsKey(key), equalTo(true));
