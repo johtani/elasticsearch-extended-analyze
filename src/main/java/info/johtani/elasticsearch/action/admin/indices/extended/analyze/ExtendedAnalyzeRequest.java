@@ -35,6 +35,7 @@ public class ExtendedAnalyzeRequest extends SingleCustomOperationRequest<Extende
     private String analyzer;
     private String tokenizer;
     private String[] tokenFilters;
+    private String[] charFilters;
     private String field;
     /**
      * specified output attribute names
@@ -107,6 +108,14 @@ public class ExtendedAnalyzeRequest extends SingleCustomOperationRequest<Extende
 
     public String[] tokenFilters() {
         return this.tokenFilters;
+    }
+
+    public ExtendedAnalyzeRequest charFilters(String... charFilters) {
+        this.charFilters = charFilters;
+        return this;
+    }
+    public String[] charFilters() {
+        return this.charFilters;
     }
 
     public ExtendedAnalyzeRequest attributes(String... attributes) {

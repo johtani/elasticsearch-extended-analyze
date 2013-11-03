@@ -19,7 +19,7 @@ import java.util.Map;
 public class ExtendedAnalyzeResponse extends ActionResponse implements ToXContent {
 
     private ExtendedAnalyzeTokenList analyzer;
-    //FIXME response object for charfilter
+    private List<CharFilteredText> charfilters;
     private ExtendedAnalyzeTokenList tokenizer;
     private List<ExtendedAnalyzeTokenList> tokenfilters;
     private boolean customAnalyzer = false;
@@ -27,11 +27,12 @@ public class ExtendedAnalyzeResponse extends ActionResponse implements ToXConten
     ExtendedAnalyzeResponse() {
     }
 
-    public ExtendedAnalyzeResponse(boolean customAnalyzer, ExtendedAnalyzeTokenList analyzer, ExtendedAnalyzeTokenList tokenizer, List<ExtendedAnalyzeTokenList> tokenfilters) {
+    public ExtendedAnalyzeResponse(boolean customAnalyzer, ExtendedAnalyzeTokenList analyzer, ExtendedAnalyzeTokenList tokenizer, List<ExtendedAnalyzeTokenList> tokenfilters, List<CharFilteredText> charfilters) {
         this.analyzer = analyzer;
         this.tokenizer = tokenizer;
         this.tokenfilters = tokenfilters;
         this.customAnalyzer = customAnalyzer;
+        this.charfilters = charfilters;
     }
 
     public ExtendedAnalyzeTokenList analyzer() {
@@ -74,6 +75,19 @@ public class ExtendedAnalyzeResponse extends ActionResponse implements ToXConten
         return this;
     }
 
+    public List<CharFilteredText> charfilters() {
+        return this.charfilters;
+    }
+
+    public ExtendedAnalyzeResponse addCharfilter(CharFilteredText charfilter) {
+        if (charfilters == null) {
+            charfilters = Lists.newArrayList(charfilter);
+        } else {
+            this.charfilters.add(charfilter);
+        }
+        return this;
+    }
+
     private XContentBuilder toXContentExtendedAnalyzeTokenList(XContentBuilder builder, ExtendedAnalyzeTokenList list) throws IOException {
         builder.startArray(list.name);
         for (ExtendedAnalyzeToken token : list.getTokens()) {
@@ -100,6 +114,16 @@ public class ExtendedAnalyzeResponse extends ActionResponse implements ToXConten
             builder.endObject();
         }
 
+        if (charfilters != null && !charfilters.isEmpty()) {
+            builder.startArray("charfilters");
+            for (CharFilteredText charfilter : charfilters) {
+                builder.startObject();
+                builder.field(charfilter.getName());
+                builder.field(charfilter.getText());
+                builder.endObject();
+            }
+        }
+
         if (tokenizer != null) {
             builder.startObject("tokenizer");
             toXContentExtendedAnalyzeTokenList(builder, tokenizer);
@@ -114,8 +138,8 @@ public class ExtendedAnalyzeResponse extends ActionResponse implements ToXConten
                 builder.endObject();
             }
             builder.endArray();
-
         }
+
         return builder;
     }
 
@@ -141,6 +165,10 @@ public class ExtendedAnalyzeResponse extends ActionResponse implements ToXConten
         out.writeVInt(tokenfilters.size());
         for (ExtendedAnalyzeTokenList tokenList : tokenfilters) {
             tokenList.writeTo(out);
+        }
+        out.writeVInt(charfilters.size());
+        for (CharFilteredText charfilter : charfilters) {
+            charfilter.writeTo(out);
         }
     }
 
@@ -258,6 +286,39 @@ public class ExtendedAnalyzeResponse extends ActionResponse implements ToXConten
             out.writeVInt(position);
             out.writeOptionalString(type);
             out.writeGenericValue(extendedAttributes);
+        }
+    }
+
+    public static class CharFilteredText implements Streamable {
+        private String name;
+        private String text;
+
+        CharFilteredText() {
+        }
+
+        public CharFilteredText(String name, String text) {
+            this.name = name;
+            this.text = text;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public String getText() {
+            return text;
+        }
+
+        @Override
+        public void readFrom(StreamInput in) throws IOException {
+            name = in.readString();
+            text = in.readString();
+        }
+
+        @Override
+        public void writeTo(StreamOutput out) throws IOException {
+            out.writeString(name);
+            out.writeString(text);
         }
     }
 }

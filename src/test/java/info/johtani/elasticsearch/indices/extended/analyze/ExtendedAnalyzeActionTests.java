@@ -19,7 +19,9 @@ package info.johtani.elasticsearch.indices.extended.analyze;
 
 import info.johtani.elasticsearch.action.admin.indices.extended.analyze.ExtendedAnalyzeRequestBuilder;
 import info.johtani.elasticsearch.action.admin.indices.extended.analyze.ExtendedAnalyzeResponse;
+import org.elasticsearch.client.Client;
 import org.elasticsearch.client.IndicesAdminClient;
+import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.network.NetworkUtils;
 import org.elasticsearch.node.Node;
 import org.hamcrest.core.IsNull;
@@ -46,6 +48,9 @@ public class ExtendedAnalyzeActionTests {
         node = nodeBuilder().local(true).settings(settingsBuilder()
             .put("path.data", "target/data")
             .put("cluster.name", "test-cluster-extended-analyze-" + NetworkUtils.getLocalAddress())
+            .put("discovery.zen.ping.multicast.enabled", false)
+            .put("index.analysis.char_filter.my_mapping.type", "mapping")
+            .putArray("index.analysis.char_filter.my_mapping.mappings", "PH=>F")
             .put("gateway.type", "none")).node();
     }
 
@@ -60,7 +65,7 @@ public class ExtendedAnalyzeActionTests {
         ExtendedAnalyzeResponse analyzeResponse = prepareAnalyze(node.client().admin().indices(), "THIS IS A TEST").setAnalyzer("simple").execute().actionGet();
         assertThat(analyzeResponse.tokenizer(), IsNull.nullValue());
         assertThat(analyzeResponse.tokenfilters(), IsNull.nullValue());
-        //FIxME charfilter is null test
+        assertThat(analyzeResponse.charfilters(), IsNull.nullValue());
         assertThat(analyzeResponse.analyzer().getName(), equalTo("simple"));
         assertThat(analyzeResponse.analyzer().getTokens().size(), equalTo(4));
 
@@ -68,9 +73,13 @@ public class ExtendedAnalyzeActionTests {
 
     @Test
     public void analyzeUsingCustomAnalyzerWithNoIndex() throws Exception {
-        ExtendedAnalyzeResponse analyzeResponse = prepareAnalyze(node.client().admin().indices(), "THIS IS A TEST").setTokenizer("keyword").setTokenFilters("lowercase").execute().actionGet();
+        ExtendedAnalyzeResponse analyzeResponse = prepareAnalyze(node.client().admin().indices(), "THIS IS A TEST").setCharFilters("html_strip").setTokenizer("keyword").setTokenFilters("lowercase").execute().actionGet();
         assertThat(analyzeResponse.analyzer(), IsNull.nullValue());
-        //FIXME charfilter test
+        //charfilters
+        // global charfilter is not change text.
+        assertThat(analyzeResponse.charfilters().size(), equalTo(1));
+        assertThat(analyzeResponse.charfilters().get(0).getName(), equalTo("html_strip"));
+        assertThat(analyzeResponse.charfilters().get(0).getText(), equalTo("THIS IS A TEST"));
         //tokenizer
         assertThat(analyzeResponse.tokenizer().getName(), equalTo("keyword"));
         assertThat(analyzeResponse.tokenizer().getTokens().size(), equalTo(1));
@@ -107,5 +116,46 @@ public class ExtendedAnalyzeActionTests {
 
     private ExtendedAnalyzeRequestBuilder prepareAnalyze(IndicesAdminClient client, String text) {
         return new ExtendedAnalyzeRequestBuilder(client, null, text);
+    }
+
+    private ExtendedAnalyzeRequestBuilder prepareAnalyze(IndicesAdminClient client, String index, String text) {
+        return new ExtendedAnalyzeRequestBuilder(client, index, text);
+    }
+
+    private Client client() {
+        return node.client();
+    }
+
+    @Test
+    public void simpleAnalyzerTests() throws Exception {
+        try {
+            client().admin().indices().prepareDelete("test").execute().actionGet();
+        } catch (Exception e) {
+            // ignore
+        }
+
+        client().admin().indices().prepareCreate("test").execute().actionGet();
+        client().admin().cluster().prepareHealth().setWaitForEvents(Priority.LANGUID).setWaitForGreenStatus().execute().actionGet();
+
+        for (int i = 0; i < 10; i++) {
+            ExtendedAnalyzeResponse analyzeResponse = prepareAnalyze(client().admin().indices(), "test", "THIS IS A PHISH").setCharFilters("my_mapping").setTokenizer("keyword").setTokenFilters("lowercase").execute().actionGet();
+
+            assertThat(analyzeResponse.analyzer(), IsNull.nullValue());
+            //charfilters
+            // global charfilter is not change text.
+            assertThat(analyzeResponse.charfilters().size(), equalTo(1));
+            assertThat(analyzeResponse.charfilters().get(0).getName(), equalTo("my_mapping"));
+            assertThat(analyzeResponse.charfilters().get(0).getText(), equalTo("THIS IS A FISH"));
+            //tokenizer
+            assertThat(analyzeResponse.tokenizer().getName(), equalTo("keyword"));
+            assertThat(analyzeResponse.tokenizer().getTokens().size(), equalTo(1));
+            assertThat(analyzeResponse.tokenizer().getTokens().get(0).getTerm(), equalTo("THIS IS A FISH"));
+            //tokenfilters
+            assertThat(analyzeResponse.tokenfilters().size(), equalTo(1));
+            assertThat(analyzeResponse.tokenfilters().get(0).getName(), equalTo("lowercase"));
+            assertThat(analyzeResponse.tokenfilters().get(0).getTokens().size(), equalTo(1));
+            assertThat(analyzeResponse.tokenfilters().get(0).getTokens().get(0).getTerm(), equalTo("this is a fish"));
+
+        }
     }
 }

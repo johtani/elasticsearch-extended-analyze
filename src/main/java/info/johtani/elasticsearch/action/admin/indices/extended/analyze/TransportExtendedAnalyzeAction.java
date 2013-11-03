@@ -25,6 +25,7 @@ import org.apache.lucene.analysis.tokenattributes.TypeAttribute;
 import org.apache.lucene.util.Attribute;
 import org.apache.lucene.util.AttributeReflector;
 import org.apache.lucene.util.BytesRef;
+import org.apache.lucene.util.CollectionUtil;
 import org.elasticsearch.ElasticSearchException;
 import org.elasticsearch.ElasticSearchIllegalArgumentException;
 import org.elasticsearch.action.support.single.custom.TransportSingleCustomOperationAction;
@@ -55,6 +56,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
+ * Based on elasticsearch TransportAnalyzeAction
  */
 public class TransportExtendedAnalyzeAction extends TransportSingleCustomOperationAction<ExtendedAnalyzeRequest, ExtendedAnalyzeResponse> {
 
@@ -187,7 +189,29 @@ public class TransportExtendedAnalyzeAction extends TransportSingleCustomOperati
                     }
                 }
             }
-            analyzer = new CustomAnalyzer(tokenizerFactory, new CharFilterFactory[0], tokenFilterFactories);
+            CharFilterFactory[] charFilterFactories = new CharFilterFactory[0];
+            if (request.charFilters() != null && request.charFilters().length > 0) {
+                charFilterFactories = new CharFilterFactory[request.charFilters().length];
+                for (int i = 0; i < request.charFilters().length; i++) {
+                    String charFilterName = request.charFilters()[i];
+                    if (indexService == null) {
+                        CharFilterFactoryFactory charFilterFactoryFactory = indicesAnalysisService.charFilterFactoryFactory(charFilterName);
+                        if (charFilterFactoryFactory == null) {
+                            throw new ElasticSearchIllegalArgumentException("failed to find global char filter top [" + request.tokenizer() + "]");
+                        }
+                        charFilterFactories[i] = charFilterFactoryFactory.create(charFilterName, ImmutableSettings.Builder.EMPTY_SETTINGS);
+                    } else {
+                        charFilterFactories[i] = indexService.analysisService().charFilter(charFilterName);
+                        if (charFilterFactories[i] == null) {
+                            throw new ElasticSearchIllegalArgumentException("failed to find char filter top [" + request.tokenizer() + "]");
+                        }
+                    }
+                    if (charFilterFactories[i] == null) {
+                        throw new ElasticSearchIllegalArgumentException("failed to find char filter top [" + request.tokenizer() + "]");
+                    }
+                }
+            }
+            analyzer = new CustomAnalyzer(tokenizerFactory, charFilterFactories, tokenFilterFactories);
             closeAnalyzer = true;
         } else if (analyzer == null) {
             if (indexService == null) {
@@ -224,20 +248,19 @@ public class TransportExtendedAnalyzeAction extends TransportSingleCustomOperati
                         Reader reader = new StringReader(source);
                         reader = charfilter.create(reader);
                         source = writeCharStream(reader);
+                        response.customAnalyzer(true).addCharfilter(new ExtendedAnalyzeResponse.CharFilteredText(charfilter.name(), source));
                     }
                 }
 
                 stream = tokenizer.create(new StringReader(source));
                 response.customAnalyzer(true).tokenizer(new ExtendedAnalyzeResponse.ExtendedAnalyzeTokenList(tokenizer.name(), processAnalysis(stream)));
 
-                //FIXME tokenfilters
-                // FIXME !! currently, no output tokenfilters.
                 if (tokenfilters != null) {
 
                     for (int i = 0; i < tokenfilters.length; i++) {
                         stream = createStackedTokenStream(source, tokenizer, tokenfilters, i + 1);
                         response.addTokenfilter(new ExtendedAnalyzeResponse.ExtendedAnalyzeTokenList(tokenfilters[i].name(), processAnalysis(stream)));
-                        //FIXME implement freeseStage
+                        //FIXME implement freezeStage
 
                         stream.close();
                     }
@@ -285,7 +308,6 @@ public class TransportExtendedAnalyzeAction extends TransportSingleCustomOperati
         return tokenStream;
     }
 
-    //FIXME input ExtendedAnalyzeToken for outputs
     private String writeCharStream(Reader input) {
         final int BUFFER_SIZE = 1024;
         char[] buf = new char[BUFFER_SIZE];
@@ -300,7 +322,6 @@ public class TransportExtendedAnalyzeAction extends TransportSingleCustomOperati
             if (len > 0)
                 sb.append(buf, 0, len);
         } while (len == BUFFER_SIZE);
-        // FIXME create ExtendedAnalyzeToken
         return sb.toString();
     }
 
@@ -308,9 +329,7 @@ public class TransportExtendedAnalyzeAction extends TransportSingleCustomOperati
         List<ExtendedAnalyzeResponse.ExtendedAnalyzeToken> tokens = Lists.newArrayList();
         stream.reset();
 
-        //TODO if analyze instance of CustomAnalyzer, divide chafilters and tokenizer, tokenfilters
         //and each tokens output
-
         CharTermAttribute term = stream.addAttribute(CharTermAttribute.class);
         PositionIncrementAttribute posIncr = stream.addAttribute(PositionIncrementAttribute.class);
         OffsetAttribute offset = stream.addAttribute(OffsetAttribute.class);
