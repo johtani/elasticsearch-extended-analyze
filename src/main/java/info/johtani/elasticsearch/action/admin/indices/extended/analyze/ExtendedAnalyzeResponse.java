@@ -118,10 +118,11 @@ public class ExtendedAnalyzeResponse extends ActionResponse implements ToXConten
             builder.startArray("charfilters");
             for (CharFilteredText charfilter : charfilters) {
                 builder.startObject();
-                builder.field(charfilter.getName());
-                builder.field(charfilter.getText());
+                builder.field("name", charfilter.getName());
+                builder.field("filterd_text", charfilter.getText());
                 builder.endObject();
             }
+            builder.endArray();
         }
 
         if (tokenizer != null) {

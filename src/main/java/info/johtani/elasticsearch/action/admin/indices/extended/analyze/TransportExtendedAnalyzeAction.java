@@ -235,9 +235,14 @@ public class TransportExtendedAnalyzeAction extends TransportSingleCustomOperati
         List<ExtendedAnalyzeResponse.ExtendedAnalyzeToken> tokens = null;
 
         try {
+            CustomAnalyzer customAnalyzer = null;
             if (analyzer instanceof CustomAnalyzer) {
+                customAnalyzer = (CustomAnalyzer)analyzer;
+            } else if (analyzer instanceof NamedAnalyzer && ((NamedAnalyzer) analyzer).analyzer() instanceof CustomAnalyzer) {
+                customAnalyzer = (CustomAnalyzer) ((NamedAnalyzer) analyzer).analyzer();
+            }
+            if (customAnalyzer != null) {
                 // customAnalyzer = divide chafilter, tokenizer tokenfilters
-                CustomAnalyzer customAnalyzer = (CustomAnalyzer) analyzer;
                 CharFilterFactory[] charfilters = customAnalyzer.charFilters();
                 TokenizerFactory tokenizer = customAnalyzer.tokenizerFactory();
                 TokenFilterFactory[] tokenfilters = customAnalyzer.tokenFilters();
