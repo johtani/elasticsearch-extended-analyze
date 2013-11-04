@@ -12,7 +12,7 @@ Similar functionality to Solr admin UI analysis page.
 
 1. Output tokens with all attributes. *Implemented.*
 2. Output each tokens tokenizer chain. *Implemented.*
-    * Not implemented CharFilter output text.
+    * <strike>Not implemented CharFilter output text.</strike> *Implemented*
 3. View on browser token changes. *Not implemented*
 
 ### example
@@ -424,6 +424,472 @@ response example
         },
         "org.apache.lucene.analysis.tokenattributes.TermToBytesRefAttribute" : {
           "bytes" : "[e3 81 9f]"
+        }
+      }
+    } ]
+  } ]
+}
+```
+
+3. Analyze Custom Analyzer that defined analyzer in index.
+create index command
+```
+curl -XPUT 'http://localhost:9200/extended_test/' -d'
+{
+    "index":{
+        "analysis":{
+             "char_filter" : {
+                 "my_char_filter" : {
+                     "type" : "mapping",
+                     "mappings" : ["ph=>f","qu=>q"]
+                  }
+            },
+            "analyzer" : {
+                "my_analyzer" : {
+                    "type" : "custom",
+                    "tokenizer" : "kuromoji_tokenizer",
+                    "filter" : ["kuromoji_baseform", "kuromoji_readingform"],
+                    "char_filter" : ["my_char_filter"]
+                }
+            }
+        }
+    }
+}'
+```
+
+request and response.
+```
+curl -XPOST 'localhost:9200/extended_test/_extended_analyze?analyzer=my_analyzer&pretty' -d 'THIS IS A phen'
+{
+  "custom_analyzer" : true,
+  "charfilters" : [ {
+    "name" : "my_char_filter",
+    "filterd_text" : "THIS IS A fen"
+  } ],
+  "tokenizer" : {
+    "kuromoji_tokenizer" : [ {
+      "token" : "THIS",
+      "start_offset" : 0,
+      "end_offset" : 4,
+      "type" : "word",
+      "position" : 1,
+      "extended_attributes" : {
+        "org.apache.lucene.analysis.ja.tokenattributes.BaseFormAttribute" : {
+          "baseForm" : null
+        },
+        "org.apache.lucene.analysis.ja.tokenattributes.InflectionAttribute" : {
+          "inflectionType (en)" : null,
+          "inflectionType" : null,
+          "inflectionForm (en)" : null,
+          "inflectionForm" : null
+        },
+        "org.apache.lucene.analysis.ja.tokenattributes.PartOfSpeechAttribute" : {
+          "partOfSpeech (en)" : "noun-proper-organization",
+          "partOfSpeech" : "名詞-固有名詞-組織"
+        },
+        "org.apache.lucene.analysis.ja.tokenattributes.ReadingAttribute" : {
+          "reading (en)" : null,
+          "reading" : null,
+          "pronunciation (en)" : null,
+          "pronunciation" : null
+        },
+        "org.apache.lucene.analysis.tokenattributes.PositionLengthAttribute" : {
+          "positionLength" : 1
+        },
+        "org.apache.lucene.analysis.tokenattributes.TermToBytesRefAttribute" : {
+          "bytes" : "[54 48 49 53]"
+        }
+      }
+    }, {
+      "token" : "IS",
+      "start_offset" : 5,
+      "end_offset" : 7,
+      "type" : "word",
+      "position" : 2,
+      "extended_attributes" : {
+        "org.apache.lucene.analysis.ja.tokenattributes.BaseFormAttribute" : {
+          "baseForm" : null
+        },
+        "org.apache.lucene.analysis.ja.tokenattributes.InflectionAttribute" : {
+          "inflectionType (en)" : null,
+          "inflectionType" : null,
+          "inflectionForm (en)" : null,
+          "inflectionForm" : null
+        },
+        "org.apache.lucene.analysis.ja.tokenattributes.PartOfSpeechAttribute" : {
+          "partOfSpeech (en)" : "noun-proper-organization",
+          "partOfSpeech" : "名詞-固有名詞-組織"
+        },
+        "org.apache.lucene.analysis.ja.tokenattributes.ReadingAttribute" : {
+          "reading (en)" : null,
+          "reading" : null,
+          "pronunciation (en)" : null,
+          "pronunciation" : null
+        },
+        "org.apache.lucene.analysis.tokenattributes.PositionLengthAttribute" : {
+          "positionLength" : 1
+        },
+        "org.apache.lucene.analysis.tokenattributes.TermToBytesRefAttribute" : {
+          "bytes" : "[49 53]"
+        }
+      }
+    }, {
+      "token" : "A",
+      "start_offset" : 8,
+      "end_offset" : 9,
+      "type" : "word",
+      "position" : 3,
+      "extended_attributes" : {
+        "org.apache.lucene.analysis.ja.tokenattributes.BaseFormAttribute" : {
+          "baseForm" : null
+        },
+        "org.apache.lucene.analysis.ja.tokenattributes.InflectionAttribute" : {
+          "inflectionType (en)" : null,
+          "inflectionType" : null,
+          "inflectionForm (en)" : null,
+          "inflectionForm" : null
+        },
+        "org.apache.lucene.analysis.ja.tokenattributes.PartOfSpeechAttribute" : {
+          "partOfSpeech (en)" : "noun-proper-organization",
+          "partOfSpeech" : "名詞-固有名詞-組織"
+        },
+        "org.apache.lucene.analysis.ja.tokenattributes.ReadingAttribute" : {
+          "reading (en)" : null,
+          "reading" : null,
+          "pronunciation (en)" : null,
+          "pronunciation" : null
+        },
+        "org.apache.lucene.analysis.tokenattributes.PositionLengthAttribute" : {
+          "positionLength" : 1
+        },
+        "org.apache.lucene.analysis.tokenattributes.TermToBytesRefAttribute" : {
+          "bytes" : "[41]"
+        }
+      }
+    }, {
+      "token" : "fen",
+      "start_offset" : 10,
+      "end_offset" : 13,
+      "type" : "word",
+      "position" : 4,
+      "extended_attributes" : {
+        "org.apache.lucene.analysis.ja.tokenattributes.BaseFormAttribute" : {
+          "baseForm" : null
+        },
+        "org.apache.lucene.analysis.ja.tokenattributes.InflectionAttribute" : {
+          "inflectionType (en)" : null,
+          "inflectionType" : null,
+          "inflectionForm (en)" : null,
+          "inflectionForm" : null
+        },
+        "org.apache.lucene.analysis.ja.tokenattributes.PartOfSpeechAttribute" : {
+          "partOfSpeech (en)" : "noun-proper-organization",
+          "partOfSpeech" : "名詞-固有名詞-組織"
+        },
+        "org.apache.lucene.analysis.ja.tokenattributes.ReadingAttribute" : {
+          "reading (en)" : null,
+          "reading" : null,
+          "pronunciation (en)" : null,
+          "pronunciation" : null
+        },
+        "org.apache.lucene.analysis.tokenattributes.PositionLengthAttribute" : {
+          "positionLength" : 1
+        },
+        "org.apache.lucene.analysis.tokenattributes.TermToBytesRefAttribute" : {
+          "bytes" : "[66 65 6e]"
+        }
+      }
+    } ]
+  },
+  "tokenfilters" : [ {
+    "kuromoji_baseform" : [ {
+      "token" : "THIS",
+      "start_offset" : 0,
+      "end_offset" : 4,
+      "type" : "word",
+      "position" : 1,
+      "extended_attributes" : {
+        "org.apache.lucene.analysis.ja.tokenattributes.BaseFormAttribute" : {
+          "baseForm" : null
+        },
+        "org.apache.lucene.analysis.ja.tokenattributes.InflectionAttribute" : {
+          "inflectionType (en)" : null,
+          "inflectionType" : null,
+          "inflectionForm (en)" : null,
+          "inflectionForm" : null
+        },
+        "org.apache.lucene.analysis.ja.tokenattributes.PartOfSpeechAttribute" : {
+          "partOfSpeech (en)" : "noun-proper-organization",
+          "partOfSpeech" : "名詞-固有名詞-組織"
+        },
+        "org.apache.lucene.analysis.ja.tokenattributes.ReadingAttribute" : {
+          "reading (en)" : null,
+          "reading" : null,
+          "pronunciation (en)" : null,
+          "pronunciation" : null
+        },
+        "org.apache.lucene.analysis.tokenattributes.KeywordAttribute" : {
+          "keyword" : false
+        },
+        "org.apache.lucene.analysis.tokenattributes.PositionLengthAttribute" : {
+          "positionLength" : 1
+        },
+        "org.apache.lucene.analysis.tokenattributes.TermToBytesRefAttribute" : {
+          "bytes" : "[54 48 49 53]"
+        }
+      }
+    }, {
+      "token" : "IS",
+      "start_offset" : 5,
+      "end_offset" : 7,
+      "type" : "word",
+      "position" : 2,
+      "extended_attributes" : {
+        "org.apache.lucene.analysis.ja.tokenattributes.BaseFormAttribute" : {
+          "baseForm" : null
+        },
+        "org.apache.lucene.analysis.ja.tokenattributes.InflectionAttribute" : {
+          "inflectionType (en)" : null,
+          "inflectionType" : null,
+          "inflectionForm (en)" : null,
+          "inflectionForm" : null
+        },
+        "org.apache.lucene.analysis.ja.tokenattributes.PartOfSpeechAttribute" : {
+          "partOfSpeech (en)" : "noun-proper-organization",
+          "partOfSpeech" : "名詞-固有名詞-組織"
+        },
+        "org.apache.lucene.analysis.ja.tokenattributes.ReadingAttribute" : {
+          "reading (en)" : null,
+          "reading" : null,
+          "pronunciation (en)" : null,
+          "pronunciation" : null
+        },
+        "org.apache.lucene.analysis.tokenattributes.KeywordAttribute" : {
+          "keyword" : false
+        },
+        "org.apache.lucene.analysis.tokenattributes.PositionLengthAttribute" : {
+          "positionLength" : 1
+        },
+        "org.apache.lucene.analysis.tokenattributes.TermToBytesRefAttribute" : {
+          "bytes" : "[49 53]"
+        }
+      }
+    }, {
+      "token" : "A",
+      "start_offset" : 8,
+      "end_offset" : 9,
+      "type" : "word",
+      "position" : 3,
+      "extended_attributes" : {
+        "org.apache.lucene.analysis.ja.tokenattributes.BaseFormAttribute" : {
+          "baseForm" : null
+        },
+        "org.apache.lucene.analysis.ja.tokenattributes.InflectionAttribute" : {
+          "inflectionType (en)" : null,
+          "inflectionType" : null,
+          "inflectionForm (en)" : null,
+          "inflectionForm" : null
+        },
+        "org.apache.lucene.analysis.ja.tokenattributes.PartOfSpeechAttribute" : {
+          "partOfSpeech (en)" : "noun-proper-organization",
+          "partOfSpeech" : "名詞-固有名詞-組織"
+        },
+        "org.apache.lucene.analysis.ja.tokenattributes.ReadingAttribute" : {
+          "reading (en)" : null,
+          "reading" : null,
+          "pronunciation (en)" : null,
+          "pronunciation" : null
+        },
+        "org.apache.lucene.analysis.tokenattributes.KeywordAttribute" : {
+          "keyword" : false
+        },
+        "org.apache.lucene.analysis.tokenattributes.PositionLengthAttribute" : {
+          "positionLength" : 1
+        },
+        "org.apache.lucene.analysis.tokenattributes.TermToBytesRefAttribute" : {
+          "bytes" : "[41]"
+        }
+      }
+    }, {
+      "token" : "fen",
+      "start_offset" : 10,
+      "end_offset" : 13,
+      "type" : "word",
+      "position" : 4,
+      "extended_attributes" : {
+        "org.apache.lucene.analysis.ja.tokenattributes.BaseFormAttribute" : {
+          "baseForm" : null
+        },
+        "org.apache.lucene.analysis.ja.tokenattributes.InflectionAttribute" : {
+          "inflectionType (en)" : null,
+          "inflectionType" : null,
+          "inflectionForm (en)" : null,
+          "inflectionForm" : null
+        },
+        "org.apache.lucene.analysis.ja.tokenattributes.PartOfSpeechAttribute" : {
+          "partOfSpeech (en)" : "noun-proper-organization",
+          "partOfSpeech" : "名詞-固有名詞-組織"
+        },
+        "org.apache.lucene.analysis.ja.tokenattributes.ReadingAttribute" : {
+          "reading (en)" : null,
+          "reading" : null,
+          "pronunciation (en)" : null,
+          "pronunciation" : null
+        },
+        "org.apache.lucene.analysis.tokenattributes.KeywordAttribute" : {
+          "keyword" : false
+        },
+        "org.apache.lucene.analysis.tokenattributes.PositionLengthAttribute" : {
+          "positionLength" : 1
+        },
+        "org.apache.lucene.analysis.tokenattributes.TermToBytesRefAttribute" : {
+          "bytes" : "[66 65 6e]"
+        }
+      }
+    } ]
+  }, {
+    "kuromoji_readingform" : [ {
+      "token" : "THIS",
+      "start_offset" : 0,
+      "end_offset" : 4,
+      "type" : "word",
+      "position" : 1,
+      "extended_attributes" : {
+        "org.apache.lucene.analysis.ja.tokenattributes.BaseFormAttribute" : {
+          "baseForm" : null
+        },
+        "org.apache.lucene.analysis.ja.tokenattributes.InflectionAttribute" : {
+          "inflectionType (en)" : null,
+          "inflectionType" : null,
+          "inflectionForm (en)" : null,
+          "inflectionForm" : null
+        },
+        "org.apache.lucene.analysis.ja.tokenattributes.PartOfSpeechAttribute" : {
+          "partOfSpeech (en)" : "noun-proper-organization",
+          "partOfSpeech" : "名詞-固有名詞-組織"
+        },
+        "org.apache.lucene.analysis.ja.tokenattributes.ReadingAttribute" : {
+          "reading (en)" : null,
+          "reading" : null,
+          "pronunciation (en)" : null,
+          "pronunciation" : null
+        },
+        "org.apache.lucene.analysis.tokenattributes.KeywordAttribute" : {
+          "keyword" : false
+        },
+        "org.apache.lucene.analysis.tokenattributes.PositionLengthAttribute" : {
+          "positionLength" : 1
+        },
+        "org.apache.lucene.analysis.tokenattributes.TermToBytesRefAttribute" : {
+          "bytes" : "[54 48 49 53]"
+        }
+      }
+    }, {
+      "token" : "IS",
+      "start_offset" : 5,
+      "end_offset" : 7,
+      "type" : "word",
+      "position" : 2,
+      "extended_attributes" : {
+        "org.apache.lucene.analysis.ja.tokenattributes.BaseFormAttribute" : {
+          "baseForm" : null
+        },
+        "org.apache.lucene.analysis.ja.tokenattributes.InflectionAttribute" : {
+          "inflectionType (en)" : null,
+          "inflectionType" : null,
+          "inflectionForm (en)" : null,
+          "inflectionForm" : null
+        },
+        "org.apache.lucene.analysis.ja.tokenattributes.PartOfSpeechAttribute" : {
+          "partOfSpeech (en)" : "noun-proper-organization",
+          "partOfSpeech" : "名詞-固有名詞-組織"
+        },
+        "org.apache.lucene.analysis.ja.tokenattributes.ReadingAttribute" : {
+          "reading (en)" : null,
+          "reading" : null,
+          "pronunciation (en)" : null,
+          "pronunciation" : null
+        },
+        "org.apache.lucene.analysis.tokenattributes.KeywordAttribute" : {
+          "keyword" : false
+        },
+        "org.apache.lucene.analysis.tokenattributes.PositionLengthAttribute" : {
+          "positionLength" : 1
+        },
+        "org.apache.lucene.analysis.tokenattributes.TermToBytesRefAttribute" : {
+          "bytes" : "[49 53]"
+        }
+      }
+    }, {
+      "token" : "A",
+      "start_offset" : 8,
+      "end_offset" : 9,
+      "type" : "word",
+      "position" : 3,
+      "extended_attributes" : {
+        "org.apache.lucene.analysis.ja.tokenattributes.BaseFormAttribute" : {
+          "baseForm" : null
+        },
+        "org.apache.lucene.analysis.ja.tokenattributes.InflectionAttribute" : {
+          "inflectionType (en)" : null,
+          "inflectionType" : null,
+          "inflectionForm (en)" : null,
+          "inflectionForm" : null
+        },
+        "org.apache.lucene.analysis.ja.tokenattributes.PartOfSpeechAttribute" : {
+          "partOfSpeech (en)" : "noun-proper-organization",
+          "partOfSpeech" : "名詞-固有名詞-組織"
+        },
+        "org.apache.lucene.analysis.ja.tokenattributes.ReadingAttribute" : {
+          "reading (en)" : null,
+          "reading" : null,
+          "pronunciation (en)" : null,
+          "pronunciation" : null
+        },
+        "org.apache.lucene.analysis.tokenattributes.KeywordAttribute" : {
+          "keyword" : false
+        },
+        "org.apache.lucene.analysis.tokenattributes.PositionLengthAttribute" : {
+          "positionLength" : 1
+        },
+        "org.apache.lucene.analysis.tokenattributes.TermToBytesRefAttribute" : {
+          "bytes" : "[41]"
+        }
+      }
+    }, {
+      "token" : "fen",
+      "start_offset" : 10,
+      "end_offset" : 13,
+      "type" : "word",
+      "position" : 4,
+      "extended_attributes" : {
+        "org.apache.lucene.analysis.ja.tokenattributes.BaseFormAttribute" : {
+          "baseForm" : null
+        },
+        "org.apache.lucene.analysis.ja.tokenattributes.InflectionAttribute" : {
+          "inflectionType (en)" : null,
+          "inflectionType" : null,
+          "inflectionForm (en)" : null,
+          "inflectionForm" : null
+        },
+        "org.apache.lucene.analysis.ja.tokenattributes.PartOfSpeechAttribute" : {
+          "partOfSpeech (en)" : "noun-proper-organization",
+          "partOfSpeech" : "名詞-固有名詞-組織"
+        },
+        "org.apache.lucene.analysis.ja.tokenattributes.ReadingAttribute" : {
+          "reading (en)" : null,
+          "reading" : null,
+          "pronunciation (en)" : null,
+          "pronunciation" : null
+        },
+        "org.apache.lucene.analysis.tokenattributes.KeywordAttribute" : {
+          "keyword" : false
+        },
+        "org.apache.lucene.analysis.tokenattributes.PositionLengthAttribute" : {
+          "positionLength" : 1
+        },
+        "org.apache.lucene.analysis.tokenattributes.TermToBytesRefAttribute" : {
+          "bytes" : "[66 65 6e]"
         }
       }
     } ]
