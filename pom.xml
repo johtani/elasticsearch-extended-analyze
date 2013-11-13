@@ -23,15 +23,15 @@
     </scm>
 
 
-    <parent>
+    <!--parent>
         <groupId>org.sonatype.oss</groupId>
         <artifactId>oss-parent</artifactId>
         <version>7</version>
-    </parent>
+    </parent-->
 
     <properties>
-        <elasticsearch.version>0.90.5</elasticsearch.version>
-        <lucene.version>4.4.0</lucene.version>
+        <elasticsearch.version>0.90.6</elasticsearch.version>
+        <lucene.version>4.5.1</lucene.version>
     </properties>
 
     <dependencies>
