@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>info.johtani</groupId>
     <artifactId>elasticsearch-extended-analyze</artifactId>
-    <version>0.5-SNAPSHOT</version>
+    <version>0.5</version>
     <packaging>jar</packaging>
     <description>Extend _analyze API for ElasticSearch</description>
     <url>https://github.com/johtani/elasticsearch-extended-analyze</url>
@@ -23,14 +23,14 @@
     </scm>
 
 
-    <!--parent>
+    <parent>
         <groupId>org.sonatype.oss</groupId>
         <artifactId>oss-parent</artifactId>
         <version>7</version>
-    </parent-->
+    </parent>
 
     <properties>
-        <elasticsearch.version>0.90.6</elasticsearch.version>
+        <elasticsearch.version>0.90.7</elasticsearch.version>
         <lucene.version>4.5.1</lucene.version>
     </properties>
 
