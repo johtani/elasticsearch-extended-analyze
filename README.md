@@ -6,6 +6,10 @@ But the plugin output more detail with all token attributes.
 
 Similar functionality to Solr admin UI analysis page.
 
+|Plugin  |Elasticsearch  |Release date|
+|--------|---------------|------------|
+|0.5     | 0.90.7->master| 2013-11-14 |
+
 ### Feature
 
 1. Output tokens with all attributes. *Implemented.*
