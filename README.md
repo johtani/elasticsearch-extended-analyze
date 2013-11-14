@@ -6,14 +6,22 @@ But the plugin output more detail with all token attributes.
 
 Similar functionality to Solr admin UI analysis page.
 
-**Currently, Draft version. Do not install using bin/plugin command. Use `mvn package` and copy plugins directory. **
-
 ### Feature
 
 1. Output tokens with all attributes. *Implemented.*
 2. Output each tokens tokenizer chain. *Implemented.*
     * <strike>Not implemented CharFilter output text.</strike> *Implemented*
 3. View on browser token changes. *Not implemented*
+
+### Install
+
+This plugin is installed using following command.
+
+```
+/bin/plugin -u https://github.com/johtani/elasticsearch-extended-analyze/releases/download/v0.5/v0.5.zip -i elasticsearch-extended-analyze
+```
+
+__Currently, This plugin is not released Maven Repository.__
 
 ### example
 
