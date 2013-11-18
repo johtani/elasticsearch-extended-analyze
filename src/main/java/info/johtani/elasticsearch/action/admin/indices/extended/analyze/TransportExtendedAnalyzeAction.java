@@ -36,6 +36,7 @@ import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.routing.ShardsIterator;
 import org.elasticsearch.common.collect.Lists;
 import org.elasticsearch.common.collect.Maps;
+import org.elasticsearch.common.collect.Sets;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.lucene.Lucene;
 import org.elasticsearch.common.settings.ImmutableSettings;
@@ -52,8 +53,10 @@ import org.elasticsearch.transport.TransportService;
 import java.io.IOException;
 import java.io.Reader;
 import java.io.StringReader;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Based on elasticsearch TransportAnalyzeAction
@@ -233,6 +236,12 @@ public class TransportExtendedAnalyzeAction extends TransportSingleCustomOperati
         ExtendedAnalyzeResponse response = new ExtendedAnalyzeResponse();
         TokenStream stream = null;
         List<ExtendedAnalyzeResponse.ExtendedAnalyzeToken> tokens = null;
+        final Set<String> includeAttibutes = Sets.newHashSet();
+        if (request.attributes() != null && request.attributes().length > 0) {
+            for (String attribute : request.attributes()) {
+                includeAttibutes.add(attribute.toLowerCase());
+            }
+        }
 
         try {
             CustomAnalyzer customAnalyzer = null;
@@ -258,13 +267,13 @@ public class TransportExtendedAnalyzeAction extends TransportSingleCustomOperati
                 }
 
                 stream = tokenizer.create(new StringReader(source));
-                response.customAnalyzer(true).tokenizer(new ExtendedAnalyzeResponse.ExtendedAnalyzeTokenList(tokenizer.name(), processAnalysis(stream)));
+                response.customAnalyzer(true).tokenizer(new ExtendedAnalyzeResponse.ExtendedAnalyzeTokenList(tokenizer.name(), processAnalysis(stream, includeAttibutes)));
 
                 if (tokenfilters != null) {
 
                     for (int i = 0; i < tokenfilters.length; i++) {
                         stream = createStackedTokenStream(source, tokenizer, tokenfilters, i + 1);
-                        response.addTokenfilter(new ExtendedAnalyzeResponse.ExtendedAnalyzeTokenList(tokenfilters[i].name(), processAnalysis(stream)));
+                        response.addTokenfilter(new ExtendedAnalyzeResponse.ExtendedAnalyzeTokenList(tokenfilters[i].name(), processAnalysis(stream, includeAttibutes)));
                         //FIXME implement freezeStage
 
                         stream.close();
@@ -280,7 +289,7 @@ public class TransportExtendedAnalyzeAction extends TransportSingleCustomOperati
                 } else {
                     name = analyzer.getClass().getName();
                 }
-                response.customAnalyzer(false).analyzer(new ExtendedAnalyzeResponse.ExtendedAnalyzeTokenList(name, processAnalysis(stream)));
+                response.customAnalyzer(false).analyzer(new ExtendedAnalyzeResponse.ExtendedAnalyzeTokenList(name, processAnalysis(stream, includeAttibutes)));
 
             }
         } catch (IOException e) {
@@ -330,7 +339,7 @@ public class TransportExtendedAnalyzeAction extends TransportSingleCustomOperati
         return sb.toString();
     }
 
-    private List<ExtendedAnalyzeResponse.ExtendedAnalyzeToken> processAnalysis(TokenStream stream) throws IOException {
+    private List<ExtendedAnalyzeResponse.ExtendedAnalyzeToken> processAnalysis(TokenStream stream, Set<String> includeAttributes) throws IOException {
         List<ExtendedAnalyzeResponse.ExtendedAnalyzeToken> tokens = Lists.newArrayList();
         stream.reset();
 
@@ -347,7 +356,7 @@ public class TransportExtendedAnalyzeAction extends TransportSingleCustomOperati
                 position = position + increment;
             }
 
-            tokens.add(new ExtendedAnalyzeResponse.ExtendedAnalyzeToken(term.toString(), position, offset.startOffset(), offset.endOffset(), type.type(), extractExtendedAttributes(stream)));
+            tokens.add(new ExtendedAnalyzeResponse.ExtendedAnalyzeToken(term.toString(), position, offset.startOffset(), offset.endOffset(), type.type(), extractExtendedAttributes(stream, includeAttributes)));
         }
         stream.end();
         return tokens;
@@ -359,9 +368,10 @@ public class TransportExtendedAnalyzeAction extends TransportSingleCustomOperati
      * Extracted object group by AttributeClassName
      *
      * @param stream current TokenStream
+     * @param includeAttributes filtering attributes
      * @return Nested Object : Map<attrClass, Map<key, value>>
      */
-    private Map<String, Map<String, Object>> extractExtendedAttributes(TokenStream stream) {
+    private Map<String, Map<String, Object>> extractExtendedAttributes(TokenStream stream, final Set<String> includeAttributes) {
         final Map<String, Map<String, Object>> extendedAttributes = Maps.newTreeMap();
 
         stream.reflectWith(new AttributeReflector() {
@@ -375,18 +385,19 @@ public class TransportExtendedAnalyzeAction extends TransportSingleCustomOperati
                     return;
                 if (TypeAttribute.class.isAssignableFrom(attClass))
                     return;
+                if (includeAttributes == null || includeAttributes.isEmpty() || includeAttributes.contains(attClass.getSimpleName().toLowerCase())) {
+                    Map<String, Object> currentAttributes = extendedAttributes.get(attClass.getName());
+                    if (currentAttributes == null) {
+                        currentAttributes = Maps.newHashMap();
+                    }
 
-                Map<String, Object> currentAttributes = extendedAttributes.get(attClass.getName());
-                if (currentAttributes == null) {
-                    currentAttributes = Maps.newHashMap();
+                    if (value instanceof BytesRef) {
+                        final BytesRef p = (BytesRef) value;
+                        value = p.toString();
+                    }
+                    currentAttributes.put(key, value);
+                    extendedAttributes.put(attClass.getName(), currentAttributes);
                 }
-
-                if (value instanceof BytesRef) {
-                    final BytesRef p = (BytesRef) value;
-                    value = p.toString();
-                }
-                currentAttributes.put(key, value);
-                extendedAttributes.put(attClass.getName(), currentAttributes);
             }
         });
 

@@ -86,6 +86,14 @@ public class ExtendedAnalyzeRequestBuilder extends SingleCustomOperationRequestB
         return this;
     }
 
+    /**
+     * Sets attributes that will include results
+     */
+    public ExtendedAnalyzeRequestBuilder setAttributes(String attributes){
+        request.attributes(attributes);
+        return this;
+    }
+
     @Override
     protected void doExecute(ActionListener<ExtendedAnalyzeResponse> listener) {
         ((IndicesAdminClient) client).execute(ExtendedAnalyzeAction.INSTANCE, request, listener);
