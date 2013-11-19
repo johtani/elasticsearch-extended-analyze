@@ -3,11 +3,13 @@ Extend _analyze API for ElasticSearch
 
 This plugin output tokens that like `_analyze` outputs.
 But the plugin output more detail with all token attributes.
+And the plugin output tokens step by step.
 
 Similar functionality to Solr admin UI analysis page.
 
 |Plugin  |Elasticsearch  |Release date|
 |--------|---------------|------------|
+|0.6.0   | 0.90.7->master| 2013-11-19 |
 |0.5     | 0.90.7->master| 2013-11-14 |
 
 ### Feature
@@ -15,6 +17,7 @@ Similar functionality to Solr admin UI analysis page.
 1. Output tokens with all attributes. *Implemented.*
 2. Output each tokens tokenizer chain. *Implemented.*
     * <strike>Not implemented CharFilter output text.</strike> *Implemented*
+    * `attributes` request parameter specify only attributes that include response (over 0.6.0)
 3. View on browser token changes. *Not implemented*
 
 ### Install
@@ -22,7 +25,7 @@ Similar functionality to Solr admin UI analysis page.
 This plugin is installed using following command.
 
 ```
-/bin/plugin -u https://github.com/johtani/elasticsearch-extended-analyze/releases/download/v0.5/v0.5.zip -i elasticsearch-extended-analyze
+/bin/plugin -u https://github.com/johtani/elasticsearch-extended-analyze/releases/download/v0.6.0/v0.6.0.zip -i elasticsearch-extended-analyze
 ```
 
 __Currently, This plugin is not released Maven Repository.__

@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>info.johtani</groupId>
     <artifactId>elasticsearch-extended-analyze</artifactId>
-    <version>0.6-SNAPSHOT</version>
+    <version>0.6.0</version>
     <packaging>jar</packaging>
     <description>Extend _analyze API for ElasticSearch</description>
     <url>https://github.com/johtani/elasticsearch-extended-analyze</url>
