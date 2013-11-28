@@ -7,7 +7,7 @@
     <artifactId>elasticsearch-extended-analyze</artifactId>
     <version>0.7.0-SNAPSHOT</version>
     <packaging>jar</packaging>
-    <description>Extend _analyze API for ElasticSearch</description>
+    <description>Extend _analyze API plugin for ElasticSearch</description>
     <url>https://github.com/johtani/elasticsearch-extended-analyze</url>
     <licenses>
         <license>
@@ -55,7 +55,6 @@
     </dependencies>
 
     <build>
-
         <resources>
             <resource>
                 <directory>${basedir}/src/main/java</directory>
@@ -143,4 +142,33 @@
             </plugin>
         </plugins>
     </build>
+
+    <profiles>
+        <profile>
+            <id>release-sign-artifacts</id>
+            <activation>
+                <property>
+                    <name>performRelease</name>
+                    <value>true</value>
+                </property>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-gpg-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>sign-artifacts</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>sign</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>
