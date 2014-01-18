@@ -25,9 +25,6 @@ import java.io.IOException;
 
 import static org.elasticsearch.action.ValidateActions.*;
 
-/**
- * TODO: extends AnalyzeRequest? this implement is not smart...
- */
 public class ExtendedAnalyzeRequest extends SingleCustomOperationRequest<ExtendedAnalyzeRequest> {
 
     private String index;

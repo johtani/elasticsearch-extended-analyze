@@ -15,9 +15,8 @@
  */
 package info.johtani.elasticsearch.rest.action.admin.indices.analyze;
 
-import org.elasticsearch.ElasticSearchIllegalArgumentException;
+import org.elasticsearch.ElasticsearchIllegalArgumentException;
 import org.elasticsearch.action.ActionListener;
-import info.johtani.elasticsearch.action.admin.indices.extended.analyze.*;
 import info.johtani.elasticsearch.action.admin.indices.extended.analyze.ExtendedAnalyzeAction;
 import info.johtani.elasticsearch.action.admin.indices.extended.analyze.ExtendedAnalyzeRequest;
 import info.johtani.elasticsearch.action.admin.indices.extended.analyze.ExtendedAnalyzeResponse;
@@ -55,7 +54,7 @@ public class RestExtendedAnalyzeAction extends BaseRestHandler {
         }
         if (text == null) {
             try {
-                channel.sendResponse(new XContentThrowableRestResponse(request, new ElasticSearchIllegalArgumentException("text is missing")));
+                channel.sendResponse(new XContentThrowableRestResponse(request, new ElasticsearchIllegalArgumentException("text is missing")));
             } catch (IOException e1) {
                 logger.warn("Failed to send response", e1);
             }

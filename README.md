@@ -7,10 +7,12 @@ And the plugin output tokens step by step.
 
 Similar functionality to Solr admin UI analysis page.
 
-|Plugin  |Elasticsearch  |Release date|
-|--------|---------------|------------|
-|0.6.0   | 0.90.7->master| 2013-11-19 |
-|0.5     | 0.90.7->master| 2013-11-14 |
+|Plugin   |Elasticsearch      |Release date|
+|---------|-------------------|------------|
+|1.0.0.RC1| 1.0.0.RC1->master | 2014-01-18 |
+|0.7.0    | 0.90.7->0.90      | 2013-11-28 |
+|0.6.0    | 0.90.7->master    | 2013-11-19 |
+|0.5      | 0.90.7->master    | 2013-11-14 |
 
 ### Feature
 
