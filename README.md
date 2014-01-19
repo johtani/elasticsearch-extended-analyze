@@ -30,8 +30,6 @@ This plugin is installed using following command.
 /bin/plugin -i info.johtani/elasticsearch-extended-analyze/1.0.0.RC1
 ```
 
-__Currently, This plugin is not released Maven Repository.__
-
 ### example
 
 1. Request example to specify `standard` tokenizer and `lowercase` tokenfilter and `stop` filter.
