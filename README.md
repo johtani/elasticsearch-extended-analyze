@@ -9,7 +9,7 @@ Similar functionality to Solr admin UI analysis page.
 
 |Plugin   |Elasticsearch      |Release date|
 |---------|-------------------|------------|
-|1.0.0.RC1| 1.0.0.RC1->master | 2014-01-18 |
+|1.0.0.RC1| 1.0.0.RC1->master | 2014-01-19 |
 |0.7.0    | 0.90.7->0.90      | 2013-11-28 |
 |0.6.0    | 0.90.7->master    | 2013-11-19 |
 |0.5      | 0.90.7->master    | 2013-11-14 |
@@ -27,7 +27,7 @@ Similar functionality to Solr admin UI analysis page.
 This plugin is installed using following command.
 
 ```
-/bin/plugin -u https://github.com/johtani/elasticsearch-extended-analyze/releases/download/v0.6.0/v0.6.0.zip -i elasticsearch-extended-analyze
+/bin/plugin -i info.johtani/elasticsearch-extended-analyze/1.0.0.RC1
 ```
 
 __Currently, This plugin is not released Maven Repository.__
