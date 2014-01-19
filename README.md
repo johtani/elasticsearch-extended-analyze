@@ -1,4 +1,4 @@
-Extend _analyze API for ElasticSearch
+Extend _analyze API for Elasticsearch
 =====================================
 
 This plugin output tokens that like `_analyze` outputs.
