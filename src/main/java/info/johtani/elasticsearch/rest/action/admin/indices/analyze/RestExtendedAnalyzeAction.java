@@ -15,22 +15,20 @@
  */
 package info.johtani.elasticsearch.rest.action.admin.indices.analyze;
 
-import org.elasticsearch.ElasticsearchIllegalArgumentException;
-import org.elasticsearch.action.ActionListener;
 import info.johtani.elasticsearch.action.admin.indices.extended.analyze.ExtendedAnalyzeAction;
 import info.johtani.elasticsearch.action.admin.indices.extended.analyze.ExtendedAnalyzeRequest;
 import info.johtani.elasticsearch.action.admin.indices.extended.analyze.ExtendedAnalyzeResponse;
+import org.elasticsearch.ElasticsearchIllegalArgumentException;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.rest.*;
-
-import java.io.IOException;
+import org.elasticsearch.rest.BaseRestHandler;
+import org.elasticsearch.rest.RestChannel;
+import org.elasticsearch.rest.RestController;
+import org.elasticsearch.rest.RestRequest;
+import org.elasticsearch.rest.action.support.RestToXContentListener;
 
 import static org.elasticsearch.rest.RestRequest.Method.*;
-import static org.elasticsearch.rest.RestStatus.*;
-import static org.elasticsearch.rest.action.support.RestXContentBuilder.*;
 
 /**
  * Extended _analyze for REST endpoint
@@ -53,12 +51,7 @@ public class RestExtendedAnalyzeAction extends BaseRestHandler {
             text = request.content().toUtf8();
         }
         if (text == null) {
-            try {
-                channel.sendResponse(new XContentThrowableRestResponse(request, new ElasticsearchIllegalArgumentException("text is missing")));
-            } catch (IOException e1) {
-                logger.warn("Failed to send response", e1);
-            }
-            return;
+            throw new ElasticsearchIllegalArgumentException("text is missing");
         }
 
         ExtendedAnalyzeRequest analyzeRequest = new ExtendedAnalyzeRequest(request.param("index"), text);
@@ -70,28 +63,7 @@ public class RestExtendedAnalyzeAction extends BaseRestHandler {
         analyzeRequest.tokenFilters(request.paramAsStringArray("token_filters", request.paramAsStringArray("filters", null)));
         analyzeRequest.tokenChain(request.paramAsBoolean("token_chain", analyzeRequest.tokenChain()));
         analyzeRequest.attributes(request.paramAsStringArray("attributes", null));
-        client.admin().indices().execute(ExtendedAnalyzeAction.INSTANCE, analyzeRequest, new ActionListener<ExtendedAnalyzeResponse>() {
-            @Override
-            public void onResponse(ExtendedAnalyzeResponse response) {
-                try {
-                    XContentBuilder builder = restContentBuilder(request, null);
-                    builder.startObject();
-                    response.toXContent(builder, request);
-                    builder.endObject();
-                    channel.sendResponse(new XContentRestResponse(request, OK, builder));
-                } catch (Throwable e) {
-                    onFailure(e);
-                }
-            }
 
-            @Override
-            public void onFailure(Throwable e) {
-                try {
-                    channel.sendResponse(new XContentThrowableRestResponse(request, e));
-                } catch (IOException e1) {
-                    logger.error("Failed to send failure response", e1);
-                }
-            }
-        });
+        client.admin().indices().execute(ExtendedAnalyzeAction.INSTANCE, analyzeRequest, new RestToXContentListener<ExtendedAnalyzeResponse>(channel));
     }
 }

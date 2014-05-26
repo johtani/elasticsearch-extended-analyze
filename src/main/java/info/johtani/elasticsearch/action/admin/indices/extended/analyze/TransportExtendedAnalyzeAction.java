@@ -100,7 +100,7 @@ public class TransportExtendedAnalyzeAction extends TransportSingleCustomOperati
     @Override
     protected ClusterBlockException checkRequestBlock(ClusterState state, ExtendedAnalyzeRequest request) {
         if (request.index() != null) {
-            request.index(state.metaData().concreteIndex(request.index()));
+            request.index(state.metaData().concreteSingleIndex(request.index()));
             return state.blocks().indexBlockedException(ClusterBlockLevel.READ, request.index());
         }
         return null;
