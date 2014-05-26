@@ -31,7 +31,7 @@ Similar functionality to Solr admin UI analysis page.
 This plugin is installed using following command.
 
 ```
-/bin/plugin -i info.johtani/elasticsearch-extended-analyze/1.1.0
+/bin/plugin -i info.johtani/elasticsearch-extended-analyze/1.2.0
 ```
 
 ### example
