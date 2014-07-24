@@ -67,7 +67,7 @@ public class TransportExtendedAnalyzeAction extends TransportSingleCustomOperati
     @Inject
     public TransportExtendedAnalyzeAction(Settings settings, ThreadPool threadPool, ClusterService clusterService, TransportService transportService,
                                           IndicesService indicesService, IndicesAnalysisService indicesAnalysisService) {
-        super(settings, threadPool, clusterService, transportService);
+        super(settings, ExtendedAnalyzeAction.NAME, threadPool, clusterService, transportService);
         this.indicesService = indicesService;
         this.indicesAnalysisService = indicesAnalysisService;
     }
@@ -85,11 +85,6 @@ public class TransportExtendedAnalyzeAction extends TransportSingleCustomOperati
     @Override
     protected ExtendedAnalyzeResponse newResponse() {
         return new ExtendedAnalyzeResponse();
-    }
-
-    @Override
-    protected String transportAction() {
-        return ExtendedAnalyzeAction.NAME;
     }
 
     @Override

@@ -19,18 +19,17 @@ package info.johtani.elasticsearch.action.admin.indices.extended.analyze;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.single.custom.SingleCustomOperationRequestBuilder;
 import org.elasticsearch.client.IndicesAdminClient;
-import org.elasticsearch.client.internal.InternalIndicesAdminClient;
 
 /**
  */
 public class ExtendedAnalyzeRequestBuilder extends SingleCustomOperationRequestBuilder<ExtendedAnalyzeRequest, ExtendedAnalyzeResponse, ExtendedAnalyzeRequestBuilder> {
 
     public ExtendedAnalyzeRequestBuilder(IndicesAdminClient indicesClient) {
-        super((InternalIndicesAdminClient) indicesClient, new ExtendedAnalyzeRequest());
+        super(indicesClient, new ExtendedAnalyzeRequest());
     }
 
     public ExtendedAnalyzeRequestBuilder(IndicesAdminClient indicesClient, String index, String text) {
-        super((InternalIndicesAdminClient) indicesClient, new ExtendedAnalyzeRequest(index, text));
+        super(indicesClient, new ExtendedAnalyzeRequest(index, text));
     }
 
     /**
@@ -96,6 +95,6 @@ public class ExtendedAnalyzeRequestBuilder extends SingleCustomOperationRequestB
 
     @Override
     protected void doExecute(ActionListener<ExtendedAnalyzeResponse> listener) {
-        ((IndicesAdminClient) client).execute(ExtendedAnalyzeAction.INSTANCE, request, listener);
+        client.execute(ExtendedAnalyzeAction.INSTANCE, request, listener);
     }
 }

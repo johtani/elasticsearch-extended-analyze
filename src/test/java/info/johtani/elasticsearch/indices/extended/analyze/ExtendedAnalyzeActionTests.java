@@ -100,6 +100,7 @@ public class ExtendedAnalyzeActionTests {
         assertThat(analyzeResponse.tokenfilters().get(0).getTokens().get(2).getTerm(), equalTo("troubl"));
         String[] expectedAttributesKey = {
             "org.apache.lucene.analysis.tokenattributes.TermToBytesRefAttribute#bytes",
+            "org.apache.lucene.analysis.tokenattributes.PositionLengthAttribute#positionLength",
             "org.apache.lucene.analysis.tokenattributes.KeywordAttribute#keyword"};
         assertThat(analyzeResponse.tokenfilters().get(0).getTokens().get(2).getExtendedAttrbutes().size(), equalTo(expectedAttributesKey.length));
         Map<String, Object> extendedAttribute = null;
