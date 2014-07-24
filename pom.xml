@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>info.johtani</groupId>
     <artifactId>elasticsearch-extended-analyze</artifactId>
-    <version>1.2.1-SNAPSHOT</version>
+    <version>1.3.0</version>
     <packaging>jar</packaging>
     <description>Extend _analyze API plugin for Elasticsearch</description>
     <url>https://github.com/johtani/elasticsearch-extended-analyze</url>
