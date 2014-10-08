@@ -45,7 +45,7 @@ public class ExtendedAnalyzeActionTests {
 
     @Before
     public void setupServer() {
-        node = nodeBuilder().local(true).settings(settingsBuilder()
+        node = nodeBuilder().settings(settingsBuilder()
             .put("path.data", "target/data")
             .put("cluster.name", "test-cluster-extended-analyze-" + NetworkUtils.getLocalAddress())
             .put("discovery.zen.ping.multicast.enabled", false)

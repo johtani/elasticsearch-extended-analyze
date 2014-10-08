@@ -27,6 +27,7 @@ import org.apache.lucene.util.AttributeReflector;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ElasticsearchIllegalArgumentException;
+import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.single.custom.TransportSingleCustomOperationAction;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
@@ -44,6 +45,7 @@ import org.elasticsearch.index.analysis.*;
 import org.elasticsearch.index.mapper.FieldMapper;
 import org.elasticsearch.index.mapper.internal.AllFieldMapper;
 import org.elasticsearch.index.service.IndexService;
+import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.indices.analysis.IndicesAnalysisService;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -66,8 +68,8 @@ public class TransportExtendedAnalyzeAction extends TransportSingleCustomOperati
 
     @Inject
     public TransportExtendedAnalyzeAction(Settings settings, ThreadPool threadPool, ClusterService clusterService, TransportService transportService,
-                                          IndicesService indicesService, IndicesAnalysisService indicesAnalysisService) {
-        super(settings, ExtendedAnalyzeAction.NAME, threadPool, clusterService, transportService);
+                                          IndicesService indicesService, IndicesAnalysisService indicesAnalysisService, ActionFilters actionFilters) {
+        super(settings, ExtendedAnalyzeAction.NAME, threadPool, clusterService, transportService, actionFilters);
         this.indicesService = indicesService;
         this.indicesAnalysisService = indicesAnalysisService;
     }
@@ -88,30 +90,24 @@ public class TransportExtendedAnalyzeAction extends TransportSingleCustomOperati
     }
 
     @Override
-    protected ClusterBlockException checkGlobalBlock(ClusterState state, ExtendedAnalyzeRequest request) {
-        return state.blocks().globalBlockedException(ClusterBlockLevel.READ);
-    }
-
-    @Override
-    protected ClusterBlockException checkRequestBlock(ClusterState state, ExtendedAnalyzeRequest request) {
-        if (request.index() != null) {
-            request.index(state.metaData().concreteSingleIndex(request.index()));
-            return state.blocks().indexBlockedException(ClusterBlockLevel.READ, request.index());
+    protected ClusterBlockException checkRequestBlock(ClusterState state, InternalRequest request) {
+        if (request.concreteIndex() != null) {
+            return super.checkRequestBlock(state, request);
         }
         return null;
     }
 
     @Override
-    protected ShardsIterator shards(ClusterState state, ExtendedAnalyzeRequest request) {
-        if (request.index() == null) {
+    protected ShardsIterator shards(ClusterState state, InternalRequest request) {
+        if (request.concreteIndex() == null) {
             // just execute locally....
             return null;
         }
-        return state.routingTable().index(request.index()).randomAllActiveShardsIt();
+        return state.routingTable().index(request.concreteIndex()).randomAllActiveShardsIt();
     }
 
     @Override
-    protected ExtendedAnalyzeResponse shardOperation(ExtendedAnalyzeRequest request, int shardId) throws ElasticsearchException {
+    protected ExtendedAnalyzeResponse shardOperation(ExtendedAnalyzeRequest request, ShardId shardId) throws ElasticsearchException {
         IndexService indexService = null;
         if (request.index() != null) {
             indexService = indicesService.indexServiceSafe(request.index());
@@ -395,5 +391,9 @@ public class TransportExtendedAnalyzeAction extends TransportSingleCustomOperati
         return extendedAttributes;
     }
 
+    @Override
+    protected boolean resolveIndex(ExtendedAnalyzeRequest request) {
+        return request.index() != null;
+    }
 }
 

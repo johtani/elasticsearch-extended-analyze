@@ -37,7 +37,7 @@ public class RestExtendedAnalyzeAction extends BaseRestHandler {
 
     @Inject
     public RestExtendedAnalyzeAction(Settings settings, Client client, RestController controller) {
-        super(settings, client);
+        super(settings, controller, client);
         controller.registerHandler(GET, "/_extended_analyze", this);
         controller.registerHandler(GET, "/{index}/_extended_analyze", this);
         controller.registerHandler(POST, "/_extended_analyze", this);
