@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>info.johtani</groupId>
     <artifactId>elasticsearch-extended-analyze</artifactId>
-    <version>1.4.0-beta2-SNAPSHOT</version>
+    <version>1.4.1-SNAPSHOT</version>
     <packaging>jar</packaging>
     <description>Extend _analyze API plugin for Elasticsearch</description>
     <url>https://github.com/johtani/elasticsearch-extended-analyze</url>
@@ -28,8 +28,8 @@
     </parent>
 
     <properties>
-        <elasticsearch.version>1.4.0.Beta1</elasticsearch.version>
-        <lucene.version>4.10.1</lucene.version>
+        <elasticsearch.version>1.4.1</elasticsearch.version>
+        <lucene.version>4.10.2</lucene.version>
     </properties>
 
     <dependencies>

@@ -27,12 +27,14 @@ import org.apache.lucene.util.AttributeReflector;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ElasticsearchIllegalArgumentException;
+import org.elasticsearch.Version;
 import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.single.custom.TransportSingleCustomOperationAction;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
+import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.routing.ShardsIterator;
 import org.elasticsearch.common.collect.Lists;
 import org.elasticsearch.common.collect.Maps;
@@ -65,6 +67,8 @@ public class TransportExtendedAnalyzeAction extends TransportSingleCustomOperati
 
     private final IndicesService indicesService;
     private final IndicesAnalysisService indicesAnalysisService;
+
+    private static final Settings DEFAULT_SETTINGS = ImmutableSettings.builder().put(IndexMetaData.SETTING_VERSION_CREATED, Version.CURRENT).build();
 
     @Inject
     public TransportExtendedAnalyzeAction(Settings settings, ThreadPool threadPool, ClusterService clusterService, TransportService transportService,
@@ -152,7 +156,7 @@ public class TransportExtendedAnalyzeAction extends TransportSingleCustomOperati
                 if (tokenizerFactoryFactory == null) {
                     throw new ElasticsearchIllegalArgumentException("failed to find global tokenizer under [" + request.tokenizer() + "]");
                 }
-                tokenizerFactory = tokenizerFactoryFactory.create(request.tokenizer(), ImmutableSettings.Builder.EMPTY_SETTINGS);
+                tokenizerFactory = tokenizerFactoryFactory.create(request.tokenizer(), DEFAULT_SETTINGS);
             } else {
                 tokenizerFactory = indexService.analysisService().tokenizer(request.tokenizer());
                 if (tokenizerFactory == null) {
@@ -169,7 +173,7 @@ public class TransportExtendedAnalyzeAction extends TransportSingleCustomOperati
                         if (tokenFilterFactoryFactory == null) {
                             throw new ElasticsearchIllegalArgumentException("failed to find global token filter under [" + request.tokenizer() + "]");
                         }
-                        tokenFilterFactories[i] = tokenFilterFactoryFactory.create(tokenFilterName, ImmutableSettings.Builder.EMPTY_SETTINGS);
+                        tokenFilterFactories[i] = tokenFilterFactoryFactory.create(tokenFilterName, DEFAULT_SETTINGS);
                     } else {
                         tokenFilterFactories[i] = indexService.analysisService().tokenFilter(tokenFilterName);
                         if (tokenFilterFactories[i] == null) {
@@ -191,7 +195,7 @@ public class TransportExtendedAnalyzeAction extends TransportSingleCustomOperati
                         if (charFilterFactoryFactory == null) {
                             throw new ElasticsearchIllegalArgumentException("failed to find global char filter top [" + request.tokenizer() + "]");
                         }
-                        charFilterFactories[i] = charFilterFactoryFactory.create(charFilterName, ImmutableSettings.Builder.EMPTY_SETTINGS);
+                        charFilterFactories[i] = charFilterFactoryFactory.create(charFilterName, DEFAULT_SETTINGS);
                     } else {
                         charFilterFactories[i] = indexService.analysisService().charFilter(charFilterName);
                         if (charFilterFactories[i] == null) {
