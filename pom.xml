@@ -28,8 +28,8 @@
     </parent>
 
     <properties>
-        <elasticsearch.version>1.4.1</elasticsearch.version>
-        <lucene.version>4.10.2</lucene.version>
+        <elasticsearch.version>1.4.3</elasticsearch.version>
+        <lucene.version>4.10.3</lucene.version>
     </properties>
 
     <dependencies>
