@@ -173,11 +173,15 @@ public class ExtendedAnalyzeActionTests {
             assertThat(analyzeResponse.tokenizer().getName(), equalTo("keyword"));
             assertThat(analyzeResponse.tokenizer().getTokens().size(), equalTo(1));
             assertThat(analyzeResponse.tokenizer().getTokens().get(0).getTerm(), equalTo("THIS IS A FISH"));
+            assertThat(analyzeResponse.tokenizer().getTokens().get(0).getStartOffset(), equalTo(0));
+            assertThat(analyzeResponse.tokenizer().getTokens().get(0).getEndOffset(), equalTo(15));
             //tokenfilters
             assertThat(analyzeResponse.tokenfilters().size(), equalTo(1));
             assertThat(analyzeResponse.tokenfilters().get(0).getName(), equalTo("lowercase"));
             assertThat(analyzeResponse.tokenfilters().get(0).getTokens().size(), equalTo(1));
             assertThat(analyzeResponse.tokenfilters().get(0).getTokens().get(0).getTerm(), equalTo("this is a fish"));
+            assertThat(analyzeResponse.tokenfilters().get(0).getTokens().get(0).getStartOffset(), equalTo(0));
+            assertThat(analyzeResponse.tokenfilters().get(0).getTokens().get(0).getEndOffset(), equalTo(15));
 
         }
     }

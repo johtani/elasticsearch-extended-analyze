@@ -33,7 +33,6 @@ import org.elasticsearch.action.support.single.custom.TransportSingleCustomOpera
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlockException;
-import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.routing.ShardsIterator;
 import org.elasticsearch.common.collect.Lists;
@@ -249,22 +248,26 @@ public class TransportExtendedAnalyzeAction extends TransportSingleCustomOperati
                 TokenFilterFactory[] tokenfilters = customAnalyzer.tokenFilters();
 
                 String source = request.text();
+                String charFilteredSource = request.text();
+                Reader reader = new StringReader(source);
+
                 if (charfilters != null) {
                     for (CharFilterFactory charfilter : charfilters) {
-                        Reader reader = new StringReader(source);
                         reader = charfilter.create(reader);
-                        source = writeCharStream(reader);
-                        response.customAnalyzer(true).addCharfilter(new ExtendedAnalyzeResponse.CharFilteredText(charfilter.name(), source));
+                        Reader readerForWriteout = new StringReader(charFilteredSource);
+                        readerForWriteout = charfilter.create(readerForWriteout);
+                        charFilteredSource = writeCharStream(readerForWriteout);
+                        response.customAnalyzer(true).addCharfilter(new ExtendedAnalyzeResponse.CharFilteredText(charfilter.name(), charFilteredSource));
                     }
                 }
 
-                stream = tokenizer.create(new StringReader(source));
+                stream = tokenizer.create(reader);
                 response.customAnalyzer(true).tokenizer(new ExtendedAnalyzeResponse.ExtendedAnalyzeTokenList(tokenizer.name(), processAnalysis(stream, includeAttibutes)));
 
                 if (tokenfilters != null) {
 
                     for (int i = 0; i < tokenfilters.length; i++) {
-                        stream = createStackedTokenStream(source, tokenizer, tokenfilters, i + 1);
+                        stream = createStackedTokenStream(source, charfilters,  tokenizer, tokenfilters, i + 1);
                         response.addTokenfilter(new ExtendedAnalyzeResponse.ExtendedAnalyzeTokenList(tokenfilters[i].name(), processAnalysis(stream, includeAttibutes)));
 
                         stream.close();
@@ -304,8 +307,12 @@ public class TransportExtendedAnalyzeAction extends TransportSingleCustomOperati
 
 
     // TODO : need to improve this method... like solr's technique
-    private TokenStream createStackedTokenStream(String charFilteredSource, TokenizerFactory tokenizer, TokenFilterFactory[] tokenfilters, int current) {
-        TokenStream tokenStream = tokenizer.create(new StringReader(charFilteredSource));
+    private TokenStream createStackedTokenStream(String source, CharFilterFactory[] charfilters, TokenizerFactory tokenizer, TokenFilterFactory[] tokenfilters, int current) {
+        Reader reader = new StringReader(source);
+        for (CharFilterFactory charfilter : charfilters) {
+            reader = charfilter.create(reader);
+        }
+        TokenStream tokenStream = tokenizer.create(reader);
         for (int i = 0; i < current; i++) {
             tokenStream = tokenfilters[i].create(tokenStream);
         }
