@@ -9,7 +9,7 @@ Similar functionality to Solr admin UI analysis page.
 
 |Plugin   |Elasticsearch      |Release date|
 |---------|-------------------|------------|
-|1.4.1    | 1.4.1             | 2014-11-27 |
+|1.4.3    | 1.4.3             | 2015-02-19 |
 |1.3.0    | 1.3.0             | 2014-07-24 |
 |1.2.0    | 1.2.0             | 2014-05-26 |
 |1.1.0    | 1.1.0             | 2014-03-29 |
@@ -33,7 +33,7 @@ Similar functionality to Solr admin UI analysis page.
 This plugin is installed using following command.
 
 ```
-bin/plugin -i info.johtani/elasticsearch-extended-analyze/1.4.1
+bin/plugin -i info.johtani/elasticsearch-extended-analyze/1.4.3
 ```
 
 ### example
@@ -880,7 +880,7 @@ curl -XPOST 'localhost:9200/extended_test/_extended_analyze?analyzer=my_analyzer
     }, {
       "token" : "fen",
       "start_offset" : 10,
-      "end_offset" : 13,
+      "end_offset" : 14,
       "type" : "word",
       "position" : 4,
       "extended_attributes" : {
