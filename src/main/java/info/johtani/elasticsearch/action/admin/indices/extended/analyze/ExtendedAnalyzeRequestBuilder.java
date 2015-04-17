@@ -93,6 +93,14 @@ public class ExtendedAnalyzeRequestBuilder extends SingleCustomOperationRequestB
         return this;
     }
 
+    /**
+     * Sets shortAttributeName
+     */
+    public ExtendedAnalyzeRequestBuilder setShortAttributeName(boolean shortAttributeName) {
+        request.shortAttributeName(shortAttributeName);
+        return this;
+    }
+
     @Override
     protected void doExecute(ActionListener<ExtendedAnalyzeResponse> listener) {
         client.execute(ExtendedAnalyzeAction.INSTANCE, request, listener);

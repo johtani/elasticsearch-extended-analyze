@@ -23,6 +23,7 @@ public class ExtendedAnalyzeResponse extends ActionResponse implements ToXConten
     private ExtendedAnalyzeTokenList tokenizer;
     private List<ExtendedAnalyzeTokenList> tokenfilters;
     private boolean customAnalyzer = false;
+    private boolean shortAttributeName = false;
 
     ExtendedAnalyzeResponse() {
     }

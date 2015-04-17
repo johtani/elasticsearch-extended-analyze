@@ -262,13 +262,13 @@ public class TransportExtendedAnalyzeAction extends TransportSingleCustomOperati
                 }
 
                 stream = tokenizer.create(reader);
-                response.customAnalyzer(true).tokenizer(new ExtendedAnalyzeResponse.ExtendedAnalyzeTokenList(tokenizer.name(), processAnalysis(stream, includeAttibutes)));
+                response.customAnalyzer(true).tokenizer(new ExtendedAnalyzeResponse.ExtendedAnalyzeTokenList(tokenizer.name(), processAnalysis(stream, includeAttibutes, request.shortAttributeName())));
 
                 if (tokenfilters != null) {
 
                     for (int i = 0; i < tokenfilters.length; i++) {
                         stream = createStackedTokenStream(source, charfilters,  tokenizer, tokenfilters, i + 1);
-                        response.addTokenfilter(new ExtendedAnalyzeResponse.ExtendedAnalyzeTokenList(tokenfilters[i].name(), processAnalysis(stream, includeAttibutes)));
+                        response.addTokenfilter(new ExtendedAnalyzeResponse.ExtendedAnalyzeTokenList(tokenfilters[i].name(), processAnalysis(stream, includeAttibutes, request.shortAttributeName())));
 
                         stream.close();
                     }
@@ -283,7 +283,7 @@ public class TransportExtendedAnalyzeAction extends TransportSingleCustomOperati
                 } else {
                     name = analyzer.getClass().getName();
                 }
-                response.customAnalyzer(false).analyzer(new ExtendedAnalyzeResponse.ExtendedAnalyzeTokenList(name, processAnalysis(stream, includeAttibutes)));
+                response.customAnalyzer(false).analyzer(new ExtendedAnalyzeResponse.ExtendedAnalyzeTokenList(name, processAnalysis(stream, includeAttibutes, request.shortAttributeName())));
 
             }
         } catch (IOException e) {
@@ -337,7 +337,7 @@ public class TransportExtendedAnalyzeAction extends TransportSingleCustomOperati
         return sb.toString();
     }
 
-    private List<ExtendedAnalyzeResponse.ExtendedAnalyzeToken> processAnalysis(TokenStream stream, Set<String> includeAttributes) throws IOException {
+    private List<ExtendedAnalyzeResponse.ExtendedAnalyzeToken> processAnalysis(TokenStream stream, Set<String> includeAttributes, boolean shortAttrName) throws IOException {
         List<ExtendedAnalyzeResponse.ExtendedAnalyzeToken> tokens = Lists.newArrayList();
         stream.reset();
 
@@ -354,7 +354,7 @@ public class TransportExtendedAnalyzeAction extends TransportSingleCustomOperati
                 position = position + increment;
             }
 
-            tokens.add(new ExtendedAnalyzeResponse.ExtendedAnalyzeToken(term.toString(), position, offset.startOffset(), offset.endOffset(), type.type(), extractExtendedAttributes(stream, includeAttributes)));
+            tokens.add(new ExtendedAnalyzeResponse.ExtendedAnalyzeToken(term.toString(), position, offset.startOffset(), offset.endOffset(), type.type(), extractExtendedAttributes(stream, includeAttributes, shortAttrName)));
         }
         stream.end();
         return tokens;
@@ -367,9 +367,10 @@ public class TransportExtendedAnalyzeAction extends TransportSingleCustomOperati
      *
      * @param stream current TokenStream
      * @param includeAttributes filtering attributes
+     * @param shortAttrName
      * @return Nested Object : Map<attrClass, Map<key, value>>
      */
-    private Map<String, Map<String, Object>> extractExtendedAttributes(TokenStream stream, final Set<String> includeAttributes) {
+    private Map<String, Map<String, Object>> extractExtendedAttributes(TokenStream stream, final Set<String> includeAttributes, final boolean shortAttrName) {
         final Map<String, Map<String, Object>> extendedAttributes = Maps.newTreeMap();
 
         stream.reflectWith(new AttributeReflector() {
@@ -394,7 +395,11 @@ public class TransportExtendedAnalyzeAction extends TransportSingleCustomOperati
                         value = p.toString();
                     }
                     currentAttributes.put(key, value);
-                    extendedAttributes.put(attClass.getName(), currentAttributes);
+                    if (shortAttrName) {
+                        extendedAttributes.put(attClass.getName().substring(attClass.getName().lastIndexOf(".")+1), currentAttributes);
+                    } else {
+                        extendedAttributes.put(attClass.getName(), currentAttributes);
+                    }
                 }
             }
         });

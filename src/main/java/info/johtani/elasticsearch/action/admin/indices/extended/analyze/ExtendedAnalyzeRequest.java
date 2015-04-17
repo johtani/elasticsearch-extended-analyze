@@ -38,10 +38,12 @@ public class ExtendedAnalyzeRequest extends SingleCustomOperationRequest<Extende
      * specified output attribute names
      */
     private String[] attributes;
+
     /**
-     * output all tokenChain tokens
+     * output short attribute names, only class name
      */
-    private boolean tokenChain = false;
+    private boolean shortAttributeName = false;
+
 
     ExtendedAnalyzeRequest() {
 
@@ -133,12 +135,12 @@ public class ExtendedAnalyzeRequest extends SingleCustomOperationRequest<Extende
         return this.field;
     }
 
-    public boolean tokenChain() {
-        return this.tokenChain;
+    public boolean shortAttributeName() {
+        return this.shortAttributeName;
     }
 
-    public ExtendedAnalyzeRequest tokenChain(boolean tokenChain) {
-        this.tokenChain = tokenChain;
+    public ExtendedAnalyzeRequest shortAttributeName(boolean shortAttributeName) {
+        this. shortAttributeName = shortAttributeName;
         return this;
     }
 
@@ -166,7 +168,7 @@ public class ExtendedAnalyzeRequest extends SingleCustomOperationRequest<Extende
             }
         }
         field = in.readOptionalString();
-        tokenChain = in.readBoolean();
+        shortAttributeName = in.readBoolean();
         int attSize = in.readVInt();
         if (size > 0) {
             attributes = new String[attSize];
@@ -192,7 +194,7 @@ public class ExtendedAnalyzeRequest extends SingleCustomOperationRequest<Extende
             }
         }
         out.writeOptionalString(field);
-        out.writeBoolean(tokenChain);
+        out.writeBoolean(shortAttributeName);
         if (attributes == null) {
             out.writeVInt(0);
         } else {

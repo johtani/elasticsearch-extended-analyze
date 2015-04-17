@@ -62,8 +62,8 @@ public class RestExtendedAnalyzeAction extends BaseRestHandler {
         analyzeRequest.tokenizer(request.param("tokenizer"));
         analyzeRequest.tokenFilters(request.paramAsStringArray("token_filters", request.paramAsStringArray("filters", null)));
         analyzeRequest.charFilters(request.paramAsStringArray("char_filters", analyzeRequest.charFilters()));
-        analyzeRequest.tokenChain(request.paramAsBoolean("token_chain", analyzeRequest.tokenChain()));
         analyzeRequest.attributes(request.paramAsStringArray("attributes", null));
+        analyzeRequest.shortAttributeName(request.paramAsBoolean("use_short_attr", false));
 
         client.admin().indices().execute(ExtendedAnalyzeAction.INSTANCE, analyzeRequest, new RestToXContentListener<ExtendedAnalyzeResponse>(channel));
     }
