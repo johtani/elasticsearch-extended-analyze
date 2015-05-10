@@ -3,3 +3,7 @@ target
 .classpath
 .project
 *.iml
+
+release.properties
+pom.xml.releaseBackup
+data
