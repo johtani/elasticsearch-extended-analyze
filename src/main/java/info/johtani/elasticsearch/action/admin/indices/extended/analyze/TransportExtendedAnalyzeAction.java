@@ -347,7 +347,7 @@ public class TransportExtendedAnalyzeAction extends TransportSingleCustomOperati
         OffsetAttribute offset = stream.addAttribute(OffsetAttribute.class);
         TypeAttribute type = stream.addAttribute(TypeAttribute.class);
 
-        int position = 0;
+        int position = -1;
         while (stream.incrementToken()) {
             int increment = posIncr.getPositionIncrement();
             if (increment > 0) {
