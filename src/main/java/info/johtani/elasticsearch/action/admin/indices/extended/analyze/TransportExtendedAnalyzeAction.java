@@ -267,14 +267,13 @@ public class TransportExtendedAnalyzeAction extends TransportSingleCustomOperati
                 if (tokenfilters != null) {
 
                     for (int i = 0; i < tokenfilters.length; i++) {
-                        stream = createStackedTokenStream(source, charfilters,  tokenizer, tokenfilters, i + 1);
+                        stream = createStackedTokenStream(source, charfilters, tokenizer, tokenfilters, i + 1);
                         response.addTokenfilter(new ExtendedAnalyzeResponse.ExtendedAnalyzeTokenList(tokenfilters[i].name(), processAnalysis(stream, includeAttibutes, request.shortAttributeName())));
 
                         stream.close();
                     }
 
                 }
-
             } else {
                 stream = analyzer.tokenStream(field, request.text());
                 String name = null;

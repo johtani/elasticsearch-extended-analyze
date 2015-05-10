@@ -17,13 +17,19 @@
 package info.johtani.elasticsearch.indices.extended.analyze;
 
 
+import info.johtani.elasticsearch.action.admin.indices.extended.analyze.ExtendedAnalyzeRequest;
 import info.johtani.elasticsearch.action.admin.indices.extended.analyze.ExtendedAnalyzeRequestBuilder;
 import info.johtani.elasticsearch.action.admin.indices.extended.analyze.ExtendedAnalyzeResponse;
+import info.johtani.elasticsearch.rest.action.admin.indices.analyze.RestExtendedAnalyzeAction;
+import org.elasticsearch.ElasticsearchIllegalArgumentException;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.client.IndicesAdminClient;
 import org.elasticsearch.common.Priority;
+import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.network.NetworkUtils;
+import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.node.Node;
+import org.elasticsearch.rest.action.admin.indices.analyze.RestAnalyzeAction;
 import org.hamcrest.core.IsNull;
 import org.junit.After;
 import org.junit.Before;
@@ -35,6 +41,7 @@ import static org.elasticsearch.common.settings.ImmutableSettings.*;
 import static org.elasticsearch.node.NodeBuilder.*;
 import static org.hamcrest.MatcherAssert.*;
 import static org.hamcrest.Matchers.*;
+import static org.junit.Assert.fail;
 
 /**
  * TODO : currently, simple test only.
@@ -211,4 +218,56 @@ public class ExtendedAnalyzeActionTests {
             assertThat(extendedAttribute.containsKey(key), equalTo(true));
         }
     }
+    @Test
+    public void testParseXContentForExtendedAnalyzeReuqest() throws Exception {
+        BytesReference content =  XContentFactory.jsonBuilder()
+            .startObject()
+            .field("text", "THIS IS A TEST")
+            .field("tokenizer", "keyword")
+            .array("filters", "lowercase")
+            .endObject().bytes();
+
+        ExtendedAnalyzeRequest analyzeRequest = new ExtendedAnalyzeRequest("for test");
+
+        RestExtendedAnalyzeAction.buildFromContent(content, analyzeRequest);
+
+        assertThat(analyzeRequest.text(), equalTo("THIS IS A TEST"));
+        assertThat(analyzeRequest.tokenizer(), equalTo("keyword"));
+        assertThat(analyzeRequest.tokenFilters(), equalTo(new String[]{"lowercase"}));
+    }
+
+    @Test
+    public void testParseXContentForExtendedAnalyzeRequestWithInvalidJsonThrowsException() throws Exception {
+        ExtendedAnalyzeRequest analyzeRequest = new ExtendedAnalyzeRequest("for test");
+        BytesReference invalidContent =  XContentFactory.jsonBuilder().startObject().value("invalid_json").endObject().bytes();
+
+        try {
+            RestExtendedAnalyzeAction.buildFromContent(invalidContent, analyzeRequest);
+            fail("shouldn't get here");
+        } catch (Exception e) {
+            assertThat(e, instanceOf(ElasticsearchIllegalArgumentException.class));
+            assertThat(e.getMessage(), equalTo("Failed to parse request body"));
+        }
+    }
+
+
+
+    @Test
+    public void testParseXContentForExtendedAnalyzeRequestWithUnknownParamThrowsException() throws Exception {
+        ExtendedAnalyzeRequest analyzeRequest = new ExtendedAnalyzeRequest("for test");
+        BytesReference invalidContent =XContentFactory.jsonBuilder()
+            .startObject()
+            .field("text", "THIS IS A TEST")
+            .field("unknown", "keyword")
+            .endObject().bytes();
+
+        try {
+            RestExtendedAnalyzeAction.buildFromContent(invalidContent, analyzeRequest);
+            fail("shouldn't get here");
+        } catch (Exception e) {
+            assertThat(e, instanceOf(ElasticsearchIllegalArgumentException.class));
+            assertThat(e.getMessage(), startsWith("Unknown parameter [unknown]"));
+        }
+    }
+
 }

@@ -73,6 +73,11 @@ public class ExtendedAnalyzeRequest extends SingleCustomOperationRequest<Extende
         return this.text;
     }
 
+    public ExtendedAnalyzeRequest text(String text) {
+        this.text = text;
+        return this;
+    }
+
     public ExtendedAnalyzeRequest index(String index) {
         this.index = index;
         return this;
