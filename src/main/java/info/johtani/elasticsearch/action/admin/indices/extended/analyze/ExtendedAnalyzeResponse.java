@@ -98,7 +98,7 @@ public class ExtendedAnalyzeResponse extends ActionResponse implements ToXConten
             builder.field("end_offset", token.getEndOffset());
             builder.field("type", token.getType());
             builder.field("position", token.getPosition());
-            builder.field("extended_attributes", token.getExtendedAttrbutes());
+            builder.field("extended_attributes", token.getExtendedAttributes());
             builder.endObject();
         }
         builder.endArray();
@@ -120,7 +120,7 @@ public class ExtendedAnalyzeResponse extends ActionResponse implements ToXConten
             for (CharFilteredText charfilter : charfilters) {
                 builder.startObject();
                 builder.field("name", charfilter.getName());
-                builder.field("filterd_text", charfilter.getText());
+                builder.field("filtered_text", charfilter.getText());
                 builder.endObject();
             }
             builder.endArray();
@@ -152,7 +152,7 @@ public class ExtendedAnalyzeResponse extends ActionResponse implements ToXConten
         analyzer = ExtendedAnalyzeTokenList.readExtendedAnalyzeTokenList(in);
         tokenizer = ExtendedAnalyzeTokenList.readExtendedAnalyzeTokenList(in);
         int size = in.readVInt();
-        tokenfilters = new ArrayList<ExtendedAnalyzeTokenList>(size);
+        tokenfilters = new ArrayList<>(size);
         for (int i = 0; i < size; i++) {
             tokenfilters.add(ExtendedAnalyzeTokenList.readExtendedAnalyzeTokenList(in));
         }
@@ -204,7 +204,7 @@ public class ExtendedAnalyzeResponse extends ActionResponse implements ToXConten
         public void readFrom(StreamInput in) throws IOException {
             name = in.readString();
             int size = in.readVInt();
-            tokens = new ArrayList<ExtendedAnalyzeToken>(size);
+            tokens = new ArrayList<>(size);
             for (int i = 0; i < size; i++) {
                 tokens.add(ExtendedAnalyzeToken.readExtendedAnalyzeToken(in));
             }
@@ -266,7 +266,7 @@ public class ExtendedAnalyzeResponse extends ActionResponse implements ToXConten
             return this.type;
         }
 
-        public Map<String, Map<String, Object>> getExtendedAttrbutes() {
+        public Map<String, Map<String, Object>> getExtendedAttributes() {
             return this.extendedAttributes;
         }
 

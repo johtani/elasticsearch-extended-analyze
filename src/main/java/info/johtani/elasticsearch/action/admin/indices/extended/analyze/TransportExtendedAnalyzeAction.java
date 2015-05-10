@@ -219,18 +219,16 @@ public class TransportExtendedAnalyzeAction extends TransportSingleCustomOperati
             throw new ElasticsearchIllegalArgumentException("failed to find analyzer");
         }
 
-        ExtendedAnalyzeResponse response = buildResponse(request, analyzer, closeAnalyzer, field);
-
-        return response;
+        return buildResponse(request, analyzer, closeAnalyzer, field);
     }
 
     private ExtendedAnalyzeResponse buildResponse(ExtendedAnalyzeRequest request, Analyzer analyzer, boolean closeAnalyzer, String field) {
         ExtendedAnalyzeResponse response = new ExtendedAnalyzeResponse();
         TokenStream stream = null;
-        final Set<String> includeAttibutes = Sets.newHashSet();
+        final Set<String> includeAttributes = Sets.newHashSet();
         if (request.attributes() != null && request.attributes().length > 0) {
             for (String attribute : request.attributes()) {
-                includeAttibutes.add(attribute.toLowerCase());
+                includeAttributes.add(attribute.toLowerCase());
             }
         }
 
@@ -242,7 +240,7 @@ public class TransportExtendedAnalyzeAction extends TransportSingleCustomOperati
                 customAnalyzer = (CustomAnalyzer) ((NamedAnalyzer) analyzer).analyzer();
             }
             if (customAnalyzer != null) {
-                // customAnalyzer = divide chafilter, tokenizer tokenfilters
+                // customAnalyzer = divide charfilter, tokenizer tokenfilters
                 CharFilterFactory[] charfilters = customAnalyzer.charFilters();
                 TokenizerFactory tokenizer = customAnalyzer.tokenizerFactory();
                 TokenFilterFactory[] tokenfilters = customAnalyzer.tokenFilters();
@@ -254,21 +252,21 @@ public class TransportExtendedAnalyzeAction extends TransportSingleCustomOperati
                 if (charfilters != null) {
                     for (CharFilterFactory charfilter : charfilters) {
                         reader = charfilter.create(reader);
-                        Reader readerForWriteout = new StringReader(charFilteredSource);
-                        readerForWriteout = charfilter.create(readerForWriteout);
-                        charFilteredSource = writeCharStream(readerForWriteout);
+                        Reader readerForWriteOut = new StringReader(charFilteredSource);
+                        readerForWriteOut = charfilter.create(readerForWriteOut);
+                        charFilteredSource = writeCharStream(readerForWriteOut);
                         response.customAnalyzer(true).addCharfilter(new ExtendedAnalyzeResponse.CharFilteredText(charfilter.name(), charFilteredSource));
                     }
                 }
 
                 stream = tokenizer.create(reader);
-                response.customAnalyzer(true).tokenizer(new ExtendedAnalyzeResponse.ExtendedAnalyzeTokenList(tokenizer.name(), processAnalysis(stream, includeAttibutes, request.shortAttributeName())));
+                response.customAnalyzer(true).tokenizer(new ExtendedAnalyzeResponse.ExtendedAnalyzeTokenList(tokenizer.name(), processAnalysis(stream, includeAttributes, request.shortAttributeName())));
 
                 if (tokenfilters != null) {
 
                     for (int i = 0; i < tokenfilters.length; i++) {
                         stream = createStackedTokenStream(source, charfilters, tokenizer, tokenfilters, i + 1);
-                        response.addTokenfilter(new ExtendedAnalyzeResponse.ExtendedAnalyzeTokenList(tokenfilters[i].name(), processAnalysis(stream, includeAttibutes, request.shortAttributeName())));
+                        response.addTokenfilter(new ExtendedAnalyzeResponse.ExtendedAnalyzeTokenList(tokenfilters[i].name(), processAnalysis(stream, includeAttributes, request.shortAttributeName())));
 
                         stream.close();
                     }
@@ -276,13 +274,13 @@ public class TransportExtendedAnalyzeAction extends TransportSingleCustomOperati
                 }
             } else {
                 stream = analyzer.tokenStream(field, request.text());
-                String name = null;
+                String name;
                 if (analyzer instanceof NamedAnalyzer) {
                     name = ((NamedAnalyzer) analyzer).name();
                 } else {
                     name = analyzer.getClass().getName();
                 }
-                response.customAnalyzer(false).analyzer(new ExtendedAnalyzeResponse.ExtendedAnalyzeTokenList(name, processAnalysis(stream, includeAttibutes, request.shortAttributeName())));
+                response.customAnalyzer(false).analyzer(new ExtendedAnalyzeResponse.ExtendedAnalyzeTokenList(name, processAnalysis(stream, includeAttributes, request.shortAttributeName())));
 
             }
         } catch (IOException e) {
@@ -322,7 +320,7 @@ public class TransportExtendedAnalyzeAction extends TransportSingleCustomOperati
     private String writeCharStream(Reader input) {
         final int BUFFER_SIZE = 1024;
         char[] buf = new char[BUFFER_SIZE];
-        int len = 0;
+        int len;
         StringBuilder sb = new StringBuilder();
         do {
             try {
@@ -366,7 +364,7 @@ public class TransportExtendedAnalyzeAction extends TransportSingleCustomOperati
      *
      * @param stream current TokenStream
      * @param includeAttributes filtering attributes
-     * @param shortAttrName
+     * @param shortAttrName if true, return short attribute name
      * @return Nested Object : Map<attrClass, Map<key, value>>
      */
     private Map<String, Map<String, Object>> extractExtendedAttributes(TokenStream stream, final Set<String> includeAttributes, final boolean shortAttrName) {

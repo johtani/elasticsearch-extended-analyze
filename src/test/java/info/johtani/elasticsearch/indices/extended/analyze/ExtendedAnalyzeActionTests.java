@@ -29,7 +29,6 @@ import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.network.NetworkUtils;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.node.Node;
-import org.elasticsearch.rest.action.admin.indices.analyze.RestAnalyzeAction;
 import org.hamcrest.core.IsNull;
 import org.junit.After;
 import org.junit.Before;
@@ -109,13 +108,13 @@ public class ExtendedAnalyzeActionTests {
             "org.apache.lucene.analysis.tokenattributes.TermToBytesRefAttribute#bytes",
             "org.apache.lucene.analysis.tokenattributes.PositionLengthAttribute#positionLength",
             "org.apache.lucene.analysis.tokenattributes.KeywordAttribute#keyword"};
-        assertThat(analyzeResponse.tokenfilters().get(0).getTokens().get(2).getExtendedAttrbutes().size(), equalTo(expectedAttributesKey.length));
+        assertThat(analyzeResponse.tokenfilters().get(0).getTokens().get(2).getExtendedAttributes().size(), equalTo(expectedAttributesKey.length));
         Map<String, Object> extendedAttribute = null;
 
         for (int i = 0; i < expectedAttributesKey.length; i++) {
             String attClassName = expectedAttributesKey[i].substring(0, expectedAttributesKey[i].indexOf("#"));
             String key = expectedAttributesKey[i].substring(expectedAttributesKey[i].indexOf("#") + 1);
-            extendedAttribute = (Map<String, Object>) analyzeResponse.tokenfilters().get(0).getTokens().get(2).getExtendedAttrbutes().get(attClassName);
+            extendedAttribute = analyzeResponse.tokenfilters().get(0).getTokens().get(2).getExtendedAttributes().get(attClassName);
             assertThat(extendedAttribute, notNullValue());
             assertThat(extendedAttribute.size(), equalTo(1));
             assertThat(extendedAttribute.containsKey(key), equalTo(true));
@@ -133,13 +132,13 @@ public class ExtendedAnalyzeActionTests {
         assertThat(analyzeResponse.tokenfilters().get(0).getTokens().get(2).getTerm(), equalTo("troubl"));
         String[] expectedAttributesKey = {
             "org.apache.lucene.analysis.tokenattributes.KeywordAttribute#keyword"};
-        assertThat(analyzeResponse.tokenfilters().get(0).getTokens().get(2).getExtendedAttrbutes().size(), equalTo(expectedAttributesKey.length));
+        assertThat(analyzeResponse.tokenfilters().get(0).getTokens().get(2).getExtendedAttributes().size(), equalTo(expectedAttributesKey.length));
         Map<String, Object> extendedAttribute = null;
 
         for (int i = 0; i < expectedAttributesKey.length; i++) {
             String attClassName = expectedAttributesKey[i].substring(0, expectedAttributesKey[i].indexOf("#"));
             String key = expectedAttributesKey[i].substring(expectedAttributesKey[i].indexOf("#") + 1);
-            extendedAttribute = (Map<String, Object>) analyzeResponse.tokenfilters().get(0).getTokens().get(2).getExtendedAttrbutes().get(attClassName);
+            extendedAttribute = analyzeResponse.tokenfilters().get(0).getTokens().get(2).getExtendedAttributes().get(attClassName);
             assertThat(extendedAttribute, notNullValue());
             assertThat(extendedAttribute.size(), equalTo(1));
             assertThat(extendedAttribute.containsKey(key), equalTo(true));
@@ -189,6 +188,7 @@ public class ExtendedAnalyzeActionTests {
             assertThat(analyzeResponse.tokenfilters().get(0).getName(), equalTo("lowercase"));
             assertThat(analyzeResponse.tokenfilters().get(0).getTokens().size(), equalTo(1));
             assertThat(analyzeResponse.tokenfilters().get(0).getTokens().get(0).getTerm(), equalTo("this is a fish"));
+            assertThat(analyzeResponse.tokenfilters().get(0).getTokens().get(0).getPosition(), equalTo(0));
             assertThat(analyzeResponse.tokenfilters().get(0).getTokens().get(0).getStartOffset(), equalTo(0));
             assertThat(analyzeResponse.tokenfilters().get(0).getTokens().get(0).getEndOffset(), equalTo(15));
 
@@ -206,13 +206,13 @@ public class ExtendedAnalyzeActionTests {
         assertThat(analyzeResponse.tokenfilters().get(0).getTokens().get(2).getTerm(), equalTo("troubl"));
         String[] expectedAttributesKey = {
             "KeywordAttribute#keyword"};
-        assertThat(analyzeResponse.tokenfilters().get(0).getTokens().get(2).getExtendedAttrbutes().size(), equalTo(expectedAttributesKey.length));
+        assertThat(analyzeResponse.tokenfilters().get(0).getTokens().get(2).getExtendedAttributes().size(), equalTo(expectedAttributesKey.length));
         Map<String, Object> extendedAttribute = null;
 
         for (int i = 0; i < expectedAttributesKey.length; i++) {
             String attClassName = expectedAttributesKey[i].substring(0, expectedAttributesKey[i].indexOf("#"));
             String key = expectedAttributesKey[i].substring(expectedAttributesKey[i].indexOf("#") + 1);
-            extendedAttribute = (Map<String, Object>) analyzeResponse.tokenfilters().get(0).getTokens().get(2).getExtendedAttrbutes().get(attClassName);
+            extendedAttribute = analyzeResponse.tokenfilters().get(0).getTokens().get(2).getExtendedAttributes().get(attClassName);
             assertThat(extendedAttribute, notNullValue());
             assertThat(extendedAttribute.size(), equalTo(1));
             assertThat(extendedAttribute.containsKey(key), equalTo(true));
