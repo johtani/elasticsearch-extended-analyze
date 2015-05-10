@@ -52,10 +52,10 @@ public class ExtendedAnalyzeRequest extends SingleCustomOperationRequest<Extende
     /**
      * Constructs a new analyzer request for the provided text.
      *
-     * @param text The text to analyze
+     * @param index The index name
      */
-    public ExtendedAnalyzeRequest(String text) {
-        this.text = text;
+    public ExtendedAnalyzeRequest(String index) {
+        this.index = index;
     }
 
     /**
