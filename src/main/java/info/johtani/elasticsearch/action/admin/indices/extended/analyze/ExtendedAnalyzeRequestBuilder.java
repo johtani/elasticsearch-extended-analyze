@@ -28,8 +28,17 @@ public class ExtendedAnalyzeRequestBuilder extends SingleCustomOperationRequestB
         super(indicesClient, new ExtendedAnalyzeRequest());
     }
 
+    public ExtendedAnalyzeRequestBuilder(IndicesAdminClient indicesClient, String index) {
+        super(indicesClient, new ExtendedAnalyzeRequest(index));
+    }
+
     public ExtendedAnalyzeRequestBuilder(IndicesAdminClient indicesClient, String index, String text) {
-        super(indicesClient, new ExtendedAnalyzeRequest(index, text));
+        super(indicesClient, new ExtendedAnalyzeRequest(index).text(text));
+    }
+
+    public ExtendedAnalyzeRequestBuilder setText(String... text) {
+        request.text(text);
+        return this;
     }
 
     /**

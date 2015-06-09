@@ -22,6 +22,7 @@ import info.johtani.elasticsearch.action.admin.indices.extended.analyze.Extended
 import info.johtani.elasticsearch.action.admin.indices.extended.analyze.ExtendedAnalyzeResponse;
 import info.johtani.elasticsearch.rest.action.admin.indices.analyze.RestExtendedAnalyzeAction;
 import org.elasticsearch.ElasticsearchIllegalArgumentException;
+import org.elasticsearch.action.admin.indices.alias.Alias;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.client.IndicesAdminClient;
 import org.elasticsearch.common.Priority;
@@ -145,6 +146,10 @@ public class ExtendedAnalyzeActionTests {
         }
     }
 
+    private ExtendedAnalyzeRequestBuilder prepareAnalyzeNoText(IndicesAdminClient client, String index) {
+        return new ExtendedAnalyzeRequestBuilder(client, index);
+    }
+
     private ExtendedAnalyzeRequestBuilder prepareAnalyze(IndicesAdminClient client, String text) {
         return new ExtendedAnalyzeRequestBuilder(client, null, text);
     }
@@ -231,7 +236,7 @@ public class ExtendedAnalyzeActionTests {
 
         RestExtendedAnalyzeAction.buildFromContent(content, analyzeRequest);
 
-        assertThat(analyzeRequest.text(), equalTo("THIS IS A TEST"));
+        assertThat(analyzeRequest.text()[0], equalTo("THIS IS A TEST"));
         assertThat(analyzeRequest.tokenizer(), equalTo("keyword"));
         assertThat(analyzeRequest.tokenFilters(), equalTo(new String[]{"lowercase"}));
     }
@@ -268,6 +273,40 @@ public class ExtendedAnalyzeActionTests {
             assertThat(e, instanceOf(ElasticsearchIllegalArgumentException.class));
             assertThat(e.getMessage(), startsWith("Unknown parameter [unknown]"));
         }
+    }
+
+
+    @Test
+    public void analyzeWithMultiValues() throws Exception {
+
+        //only analyzer =
+        client().admin().indices().prepareCreate("test2").get();
+        client().admin().cluster().prepareHealth().setWaitForEvents(Priority.LANGUID).setWaitForGreenStatus().execute().actionGet();
+
+        client().admin().indices().preparePutMapping("test2")
+            .setType("document").setSource("simple", "type=string,analyzer=simple,position_offset_gap=100").get();
+
+
+        String[] texts = new String[]{"THIS IS A TEST", "THE SECOND TEXT"};
+        ExtendedAnalyzeResponse analyzeResponse = prepareAnalyzeNoText(node.client().admin().indices(), "test2")
+            .setField("simple").setShortAttributeName(true).setText(texts).execute().get();
+
+
+        assertThat(analyzeResponse.analyzer().getName(), equalTo("simple"));
+        assertThat(analyzeResponse.analyzer().getTokens().size(), equalTo(7));
+        ExtendedAnalyzeResponse.ExtendedAnalyzeToken token = analyzeResponse.analyzer().getTokens().get(3);
+
+        assertThat(token.getTerm(), equalTo("test"));
+        assertThat(token.getPosition(), equalTo(3));
+        assertThat(token.getStartOffset(), equalTo(10));
+        assertThat(token.getEndOffset(), equalTo(14));
+
+        token = analyzeResponse.analyzer().getTokens().get(5);
+        assertThat(token.getTerm(), equalTo("second"));
+        assertThat(token.getPosition(), equalTo(105));
+        assertThat(token.getStartOffset(), equalTo(19));
+        assertThat(token.getEndOffset(), equalTo(25));
+
     }
 
 }

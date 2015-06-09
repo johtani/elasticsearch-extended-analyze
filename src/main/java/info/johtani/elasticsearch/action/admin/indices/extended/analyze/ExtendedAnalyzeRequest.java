@@ -28,7 +28,7 @@ import static org.elasticsearch.action.ValidateActions.*;
 public class ExtendedAnalyzeRequest extends SingleCustomOperationRequest<ExtendedAnalyzeRequest> {
 
     private String index;
-    private String text;
+    private String[] text;
     private String analyzer;
     private String tokenizer;
     private String[] tokenFilters;
@@ -58,22 +58,12 @@ public class ExtendedAnalyzeRequest extends SingleCustomOperationRequest<Extende
         this.index = index;
     }
 
-    /**
-     * Constructs a new analyzer request for the provided index and text.
-     *
-     * @param index The index name
-     * @param text  The text to analyze
-     */
-    public ExtendedAnalyzeRequest(@Nullable String index, String text) {
-        this.index = index;
-        this.text = text;
-    }
 
-    public String text() {
+    public String[] text() {
         return this.text;
     }
 
-    public ExtendedAnalyzeRequest text(String text) {
+    public ExtendedAnalyzeRequest text(String... text) {
         this.text = text;
         return this;
     }
@@ -162,7 +152,7 @@ public class ExtendedAnalyzeRequest extends SingleCustomOperationRequest<Extende
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
         index = in.readOptionalString();
-        text = in.readString();
+        text = in.readStringArray();
         analyzer = in.readOptionalString();
         tokenizer = in.readOptionalString();
         int size = in.readVInt();
@@ -187,7 +177,7 @@ public class ExtendedAnalyzeRequest extends SingleCustomOperationRequest<Extende
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
         out.writeOptionalString(index);
-        out.writeString(text);
+        out.writeStringArray(text);
         out.writeOptionalString(analyzer);
         out.writeOptionalString(tokenizer);
         if (tokenFilters == null) {
