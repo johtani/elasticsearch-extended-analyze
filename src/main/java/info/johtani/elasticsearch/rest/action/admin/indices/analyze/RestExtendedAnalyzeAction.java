@@ -57,7 +57,7 @@ public class RestExtendedAnalyzeAction extends BaseRestHandler {
 
     @Override
     public void handleRequest(final RestRequest request, final RestChannel channel, final Client client) {
-        String text = request.param("text");
+        String[] text = request.paramAsStringArrayOrEmptyIfAll("text");
 
         ExtendedAnalyzeRequest analyzeRequest = new ExtendedAnalyzeRequest(request.param("index"));
         analyzeRequest.text(text);
@@ -74,8 +74,8 @@ public class RestExtendedAnalyzeAction extends BaseRestHandler {
         if (request.hasContent() || request.hasParam("source")) {
             XContentType type = guessBodyContentType(request);
             if (type == null) {
-                if (Strings.isEmpty(text)) {
-                    text = RestActions.getRestContent(request).toUtf8();
+                if (text == null || text.length == 0) {
+                    text = new String[]{ RestActions.getRestContent(request).toUtf8()};
                     analyzeRequest.text(text);
                 }
             } else {
@@ -109,6 +109,15 @@ public class RestExtendedAnalyzeAction extends BaseRestHandler {
                         analyzeRequest.preferLocal(parser.booleanValue());
                     } else if ("text".equals(currentFieldName) && token == XContentParser.Token.VALUE_STRING) {
                         analyzeRequest.text(parser.text());
+                    } else if ("text".equals(currentFieldName) && token == XContentParser.Token.START_ARRAY) {
+                        List<String> texts = Lists.newArrayList();
+                        while ((token = parser.nextToken()) != XContentParser.Token.END_ARRAY) {
+                            if (token.isValue() == false) {
+                                throw new ElasticsearchIllegalArgumentException(currentFieldName + " array element should only contain text");
+                            }
+                            texts.add(parser.text());
+                        }
+                        analyzeRequest.text(texts.toArray(Strings.EMPTY_ARRAY));
                     } else if ("analyzer".equals(currentFieldName) && token == XContentParser.Token.VALUE_STRING) {
                         analyzeRequest.analyzer(parser.text());
                     } else if ("field".equals(currentFieldName) && token == XContentParser.Token.VALUE_STRING) {
