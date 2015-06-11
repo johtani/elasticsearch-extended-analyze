@@ -27,7 +27,6 @@ import static org.elasticsearch.action.ValidateActions.*;
 
 public class ExtendedAnalyzeRequest extends SingleCustomOperationRequest<ExtendedAnalyzeRequest> {
 
-    private String index;
     private String[] text;
     private String analyzer;
     private String tokenizer;
@@ -55,7 +54,7 @@ public class ExtendedAnalyzeRequest extends SingleCustomOperationRequest<Extende
      * @param index The index name
      */
     public ExtendedAnalyzeRequest(String index) {
-        this.index = index;
+        this.index(index);
     }
 
 
@@ -66,15 +65,6 @@ public class ExtendedAnalyzeRequest extends SingleCustomOperationRequest<Extende
     public ExtendedAnalyzeRequest text(String... text) {
         this.text = text;
         return this;
-    }
-
-    public ExtendedAnalyzeRequest index(String index) {
-        this.index = index;
-        return this;
-    }
-
-    public String index() {
-        return this.index;
     }
 
     public ExtendedAnalyzeRequest analyzer(String analyzer) {
@@ -151,7 +141,6 @@ public class ExtendedAnalyzeRequest extends SingleCustomOperationRequest<Extende
     @Override
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
-        index = in.readOptionalString();
         text = in.readStringArray();
         analyzer = in.readOptionalString();
         tokenizer = in.readOptionalString();
@@ -176,7 +165,6 @@ public class ExtendedAnalyzeRequest extends SingleCustomOperationRequest<Extende
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
-        out.writeOptionalString(index);
         out.writeStringArray(text);
         out.writeOptionalString(analyzer);
         out.writeOptionalString(tokenizer);

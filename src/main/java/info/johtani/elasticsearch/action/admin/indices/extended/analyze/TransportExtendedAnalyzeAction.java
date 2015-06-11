@@ -114,8 +114,8 @@ public class TransportExtendedAnalyzeAction extends TransportSingleCustomOperati
     @Override
     protected ExtendedAnalyzeResponse shardOperation(ExtendedAnalyzeRequest request, ShardId shardId) throws ElasticsearchException {
         IndexService indexService = null;
-        if (request.index() != null) {
-            indexService = indicesService.indexServiceSafe(request.index());
+        if (shardId != null) {
+            indexService = indicesService.indexServiceSafe(shardId.getIndex());
         }
         Analyzer analyzer = null;
         boolean closeAnalyzer = false;

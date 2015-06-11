@@ -151,12 +151,24 @@ public class ExtendedAnalyzeResponse extends ActionResponse implements ToXConten
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
         customAnalyzer = in.readBoolean();
-        analyzer = ExtendedAnalyzeTokenList.readExtendedAnalyzeTokenList(in);
-        tokenizer = ExtendedAnalyzeTokenList.readExtendedAnalyzeTokenList(in);
-        int size = in.readVInt();
-        tokenfilters = new ArrayList<>(size);
-        for (int i = 0; i < size; i++) {
-            tokenfilters.add(ExtendedAnalyzeTokenList.readExtendedAnalyzeTokenList(in));
+        if (!customAnalyzer) {
+            analyzer = ExtendedAnalyzeTokenList.readExtendedAnalyzeTokenList(in);
+        } else {
+            tokenizer = ExtendedAnalyzeTokenList.readExtendedAnalyzeTokenList(in);
+            int size = in.readVInt();
+            if (size > 0) {
+                tokenfilters = Lists.newArrayListWithCapacity(size);
+                for (int i = 0; i < size; i++) {
+                    tokenfilters.add(ExtendedAnalyzeTokenList.readExtendedAnalyzeTokenList(in));
+                }
+            }
+            size = in.readVInt();
+            if (size > 0) {
+                charfilters = Lists.newArrayListWithCapacity(size);
+                for (int i = 0; i < size; i++) {
+                    charfilters.add(CharFilteredText.readCharFilteredText(in));
+                }
+            }
         }
     }
 
@@ -164,15 +176,26 @@ public class ExtendedAnalyzeResponse extends ActionResponse implements ToXConten
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
         out.writeBoolean(customAnalyzer);
-        analyzer.writeTo(out);
-        tokenizer.writeTo(out);
-        out.writeVInt(tokenfilters.size());
-        for (ExtendedAnalyzeTokenList tokenList : tokenfilters) {
-            tokenList.writeTo(out);
-        }
-        out.writeVInt(charfilters.size());
-        for (CharFilteredText charfilter : charfilters) {
-            charfilter.writeTo(out);
+        if (!customAnalyzer) {
+            analyzer.writeTo(out);
+        } else {
+            tokenizer.writeTo(out);
+            if (tokenfilters != null) {
+                out.writeVInt(tokenfilters.size());
+                for (ExtendedAnalyzeTokenList tokenList : tokenfilters) {
+                    tokenList.writeTo(out);
+                }
+            } else {
+                out.writeVInt(0);
+            }
+            if (charfilters != null) {
+                out.writeVInt(charfilters.size());
+                for (CharFilteredText charfilter : charfilters) {
+                    charfilter.writeTo(out);
+                }
+            } else {
+                out.writeVInt(0);
+            }
         }
     }
 
@@ -311,6 +334,12 @@ public class ExtendedAnalyzeResponse extends ActionResponse implements ToXConten
 
         public List<String> getTexts() {
             return texts;
+        }
+
+        public static CharFilteredText readCharFilteredText(StreamInput in) throws IOException {
+            CharFilteredText text = new CharFilteredText();
+            text.readFrom(in);
+            return text;
         }
 
         @Override
