@@ -2,6 +2,7 @@ package info.johtani.elasticsearch.action.admin.indices.extended.analyze;
 
 
 import org.elasticsearch.action.ActionResponse;
+import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.collect.Lists;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -11,6 +12,7 @@ import org.elasticsearch.common.xcontent.XContentBuilder;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -120,7 +122,7 @@ public class ExtendedAnalyzeResponse extends ActionResponse implements ToXConten
             for (CharFilteredText charfilter : charfilters) {
                 builder.startObject();
                 builder.field("name", charfilter.getName());
-                builder.field("filtered_text", charfilter.getText());
+                builder.field("filtered_text", charfilter.getTexts());
                 builder.endObject();
             }
             builder.endArray();
@@ -293,34 +295,34 @@ public class ExtendedAnalyzeResponse extends ActionResponse implements ToXConten
 
     public static class CharFilteredText implements Streamable {
         private String name;
-        private String text;
+        private List<String> texts;
 
         CharFilteredText() {
         }
 
-        public CharFilteredText(String name, String text) {
+        public CharFilteredText(String name, List<String> texts) {
             this.name = name;
-            this.text = text;
+            this.texts = texts;
         }
 
         public String getName() {
             return name;
         }
 
-        public String getText() {
-            return text;
+        public List<String> getTexts() {
+            return texts;
         }
 
         @Override
         public void readFrom(StreamInput in) throws IOException {
             name = in.readString();
-            text = in.readString();
+            texts = Lists.newArrayList(in.readStringArray());
         }
 
         @Override
         public void writeTo(StreamOutput out) throws IOException {
             out.writeString(name);
-            out.writeString(text);
+            out.writeStringArray(texts.toArray(Strings.EMPTY_ARRAY));
         }
     }
 }

@@ -246,6 +246,7 @@ public class TransportExtendedAnalyzeAction extends TransportSingleCustomOperati
             TokenizerFactory tokenizer = customAnalyzer.tokenizerFactory();
             TokenFilterFactory[] tokenfilters = customAnalyzer.tokenFilters();
 
+            Map<String, List<String>> charFiltersTexts = Maps.newHashMapWithExpectedSize(charfilters.length);
             Map<String, TokenListCreator> tokenFiltersTokenListCreator = Maps.newHashMapWithExpectedSize(tokenfilters.length);
 
             TokenListCreator tokenizerTokenListCreator = new TokenListCreator();
@@ -254,15 +255,19 @@ public class TransportExtendedAnalyzeAction extends TransportSingleCustomOperati
                 String charFilteredSource = text;
 
                 Reader reader = new StringReader(text);
-
                 if (charfilters != null) {
-                    //TODO I should think how to create response
                     for (CharFilterFactory charfilter : charfilters) {
                         reader = charfilter.create(reader);
                         Reader readerForWriteOut = new StringReader(charFilteredSource);
                         readerForWriteOut = charfilter.create(readerForWriteOut);
                         charFilteredSource = writeCharStream(readerForWriteOut);
-                        response.customAnalyzer(true).addCharfilter(new ExtendedAnalyzeResponse.CharFilteredText(charfilter.name(), charFilteredSource));
+
+                        List<String> texts = charFiltersTexts.get(charfilter.name());
+                        if (texts == null) {
+                            texts = Lists.newArrayList();
+                        }
+                        texts.add(charFilteredSource);
+                        charFiltersTexts.put(charfilter.name(), texts);
                     }
                 }
 
@@ -272,7 +277,6 @@ public class TransportExtendedAnalyzeAction extends TransportSingleCustomOperati
 
                 //analyzing each tokenfilter
                 if (tokenfilters != null) {
-
                     for (int i = 0; i < tokenfilters.length; i++) {
                         TokenListCreator tokenfilterTokenListCreator = tokenFiltersTokenListCreator.get(tokenfilters[i].name());
                         if (tokenfilterTokenListCreator == null) {
@@ -285,6 +289,9 @@ public class TransportExtendedAnalyzeAction extends TransportSingleCustomOperati
                 }
             }
 
+            for (String charFilterName : charFiltersTexts.keySet()) {
+                response.addCharfilter(new ExtendedAnalyzeResponse.CharFilteredText(charFilterName, charFiltersTexts.get(charFilterName)));
+            }
             response.customAnalyzer(true).tokenizer(new ExtendedAnalyzeResponse.ExtendedAnalyzeTokenList(tokenizer.name(), tokenizerTokenListCreator.getTokens()));
             for (String tokenFilterName : tokenFiltersTokenListCreator.keySet()) {
                 response.customAnalyzer(true).addTokenfilter(
@@ -313,22 +320,17 @@ public class TransportExtendedAnalyzeAction extends TransportSingleCustomOperati
         }
 
         TokenListCreator tokenListCreator = new TokenListCreator();
-
         for (String text : request.text()){
-
             try {
                 tokenListCreator.analyze(analyzer.tokenStream(field, text), analyzer, field, includeAttributes, request.shortAttributeName());
-
             } catch (IOException e) {
                 throw new ElasticsearchException("failed to analyze", e);
             }
-
         }
         response.customAnalyzer(false).analyzer(new ExtendedAnalyzeResponse.ExtendedAnalyzeTokenList(name, tokenListCreator.getTokens()));
     }
 
 
-    // TODO : need to improve this method... like solr's technique
     private TokenStream createStackedTokenStream(String source, CharFilterFactory[] charfilters, TokenizerFactory tokenizer, TokenFilterFactory[] tokenfilters, int current) {
         Reader reader = new StringReader(source);
         for (CharFilterFactory charfilter : charfilters) {

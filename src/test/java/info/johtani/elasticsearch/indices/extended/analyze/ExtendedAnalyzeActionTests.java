@@ -22,7 +22,6 @@ import info.johtani.elasticsearch.action.admin.indices.extended.analyze.Extended
 import info.johtani.elasticsearch.action.admin.indices.extended.analyze.ExtendedAnalyzeResponse;
 import info.johtani.elasticsearch.rest.action.admin.indices.analyze.RestExtendedAnalyzeAction;
 import org.elasticsearch.ElasticsearchIllegalArgumentException;
-import org.elasticsearch.action.admin.indices.alias.Alias;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.client.IndicesAdminClient;
 import org.elasticsearch.common.Priority;
@@ -58,6 +57,11 @@ public class ExtendedAnalyzeActionTests {
             .put("discovery.zen.ping.multicast.enabled", false)
             .put("index.analysis.char_filter.my_mapping.type", "mapping")
             .putArray("index.analysis.char_filter.my_mapping.mappings", "PH=>F")
+            .put("index.analysis.analyzer.test_analyzer.type", "custom")
+            .put("index.analysis.analyzer.test_analyzer.position_offset_gap", "100")
+            .put("index.analysis.analyzer.test_analyzer.tokenizer", "standard")
+            .putArray("index.analysis.analyzer.test_analyzer.char_filter", "my_mapping")
+            .putArray("index.analysis.analyzer.test_analyzer.filter", "snowball")
             .put("gateway.type", "none")).node();
     }
 
@@ -86,7 +90,8 @@ public class ExtendedAnalyzeActionTests {
         // global charfilter is not change text.
         assertThat(analyzeResponse.charfilters().size(), equalTo(1));
         assertThat(analyzeResponse.charfilters().get(0).getName(), equalTo("html_strip"));
-        assertThat(analyzeResponse.charfilters().get(0).getText(), equalTo("THIS IS A TEST"));
+        assertThat(analyzeResponse.charfilters().get(0).getTexts().size(), equalTo(1));
+        assertThat(analyzeResponse.charfilters().get(0).getTexts().get(0), equalTo("THIS IS A TEST"));
         //tokenizer
         assertThat(analyzeResponse.tokenizer().getName(), equalTo("keyword"));
         assertThat(analyzeResponse.tokenizer().getTokens().size(), equalTo(1));
@@ -181,7 +186,8 @@ public class ExtendedAnalyzeActionTests {
             // global charfilter is not change text.
             assertThat(analyzeResponse.charfilters().size(), equalTo(1));
             assertThat(analyzeResponse.charfilters().get(0).getName(), equalTo("my_mapping"));
-            assertThat(analyzeResponse.charfilters().get(0).getText(), equalTo("THIS IS A FISH"));
+            assertThat(analyzeResponse.charfilters().get(0).getTexts().size(), equalTo(1));
+            assertThat(analyzeResponse.charfilters().get(0).getTexts().get(0), equalTo("THIS IS A FISH"));
             //tokenizer
             assertThat(analyzeResponse.tokenizer().getName(), equalTo("keyword"));
             assertThat(analyzeResponse.tokenizer().getTokens().size(), equalTo(1));
@@ -308,5 +314,68 @@ public class ExtendedAnalyzeActionTests {
         assertThat(token.getEndOffset(), equalTo(25));
 
     }
+
+
+    @Test
+    public void analyzeWithMultiValuesWithCustomAnalyzer() throws Exception {
+
+        try {
+            client().admin().indices().prepareDelete("test").execute().actionGet();
+        } catch (Exception e) {
+            // ignore
+        }
+
+        client().admin().indices().prepareCreate("test").execute().actionGet();
+        client().admin().cluster().prepareHealth().setWaitForEvents(Priority.LANGUID).setWaitForGreenStatus().execute().actionGet();
+
+        //only analyzer =
+        String[] texts = new String[]{"this is a PHISH", "the troubled text"};
+        ExtendedAnalyzeResponse analyzeResponse = prepareAnalyzeNoText(node.client().admin().indices(), "test")
+            .setAnalyzer("test_analyzer").setShortAttributeName(true).setText(texts).execute().get();
+
+        // charfilter
+        assertThat(analyzeResponse.charfilters().size(), equalTo(1));
+        assertThat(analyzeResponse.charfilters().get(0).getName(), equalTo("my_mapping"));
+        assertThat(analyzeResponse.charfilters().get(0).getTexts().size(), equalTo(2));
+        assertThat(analyzeResponse.charfilters().get(0).getTexts().get(0), equalTo("this is a FISH"));
+        assertThat(analyzeResponse.charfilters().get(0).getTexts().get(1), equalTo("the troubled text"));
+
+        // tokenizer
+        assertThat(analyzeResponse.tokenizer().getName(), equalTo("standard"));
+        assertThat(analyzeResponse.tokenizer().getTokens().size(), equalTo(7));
+        ExtendedAnalyzeResponse.ExtendedAnalyzeToken token = analyzeResponse.tokenizer().getTokens().get(3);
+
+        assertThat(token.getTerm(), equalTo("FISH"));
+        assertThat(token.getPosition(), equalTo(3));
+        assertThat(token.getStartOffset(), equalTo(10));
+        assertThat(token.getEndOffset(), equalTo(15));
+
+        token = analyzeResponse.tokenizer().getTokens().get(5);
+        assertThat(token.getTerm(), equalTo("troubled"));
+        assertThat(token.getPosition(), equalTo(105));
+        assertThat(token.getStartOffset(), equalTo(20));
+        assertThat(token.getEndOffset(), equalTo(28));
+
+        // tokenfilter
+
+        assertThat(analyzeResponse.tokenfilters().size(), equalTo(1));
+        assertThat(analyzeResponse.tokenfilters().get(0).getName(), equalTo("snowball"));
+        assertThat(analyzeResponse.tokenfilters().get(0).getTokens().size(), equalTo(7));
+        token = analyzeResponse.tokenfilters().get(0).getTokens().get(3);
+
+        assertThat(token.getTerm(), equalTo("FISH"));
+        assertThat(token.getPosition(), equalTo(3));
+        assertThat(token.getStartOffset(), equalTo(10));
+        assertThat(token.getEndOffset(), equalTo(15));
+
+        token = analyzeResponse.tokenfilters().get(0).getTokens().get(5);
+        assertThat(token.getTerm(), equalTo("troubl"));
+        assertThat(token.getPosition(), equalTo(105));
+        assertThat(token.getStartOffset(), equalTo(20));
+        assertThat(token.getEndOffset(), equalTo(28));
+
+
+    }
+
 
 }
