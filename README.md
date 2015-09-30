@@ -9,6 +9,7 @@ Similar functionality to Solr admin UI analysis page.
 
 |Plugin   |Elasticsearch      |Release date|
 |---------|-------------------|------------|
+|1.6.0    | >1.6.0            | 2015-06-12 |
 |1.5.2    | 1.5.2             | 2015-05-10 |
 |1.4.3    | 1.4.3             | 2015-02-19 |
 |1.3.0    | 1.3.0             | 2014-07-24 |
