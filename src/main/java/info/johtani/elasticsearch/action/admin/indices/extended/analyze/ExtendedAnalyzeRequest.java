@@ -16,8 +16,7 @@
 package info.johtani.elasticsearch.action.admin.indices.extended.analyze;
 
 import org.elasticsearch.action.ActionRequestValidationException;
-import org.elasticsearch.action.support.single.custom.SingleCustomOperationRequest;
-import org.elasticsearch.common.Nullable;
+import org.elasticsearch.action.support.single.shard.SingleShardRequest;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -25,7 +24,7 @@ import java.io.IOException;
 
 import static org.elasticsearch.action.ValidateActions.*;
 
-public class ExtendedAnalyzeRequest extends SingleCustomOperationRequest<ExtendedAnalyzeRequest> {
+public class ExtendedAnalyzeRequest extends SingleShardRequest<ExtendedAnalyzeRequest> {
 
     private String[] text;
     private String analyzer;
@@ -131,7 +130,7 @@ public class ExtendedAnalyzeRequest extends SingleCustomOperationRequest<Extende
 
     @Override
     public ActionRequestValidationException validate() {
-        ActionRequestValidationException validationException = super.validate();
+        ActionRequestValidationException validationException = null;
         if (text == null) {
             validationException = addValidationError("text is missing", validationException);
         }

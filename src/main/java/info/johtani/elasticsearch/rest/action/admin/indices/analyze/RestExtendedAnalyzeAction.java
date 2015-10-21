@@ -18,11 +18,9 @@ package info.johtani.elasticsearch.rest.action.admin.indices.analyze;
 import info.johtani.elasticsearch.action.admin.indices.extended.analyze.ExtendedAnalyzeAction;
 import info.johtani.elasticsearch.action.admin.indices.extended.analyze.ExtendedAnalyzeRequest;
 import info.johtani.elasticsearch.action.admin.indices.extended.analyze.ExtendedAnalyzeResponse;
-import org.elasticsearch.ElasticsearchIllegalArgumentException;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.collect.Lists;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentFactory;
@@ -37,6 +35,7 @@ import org.elasticsearch.rest.action.support.RestActions;
 import org.elasticsearch.rest.action.support.RestToXContentListener;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 import static org.elasticsearch.rest.RestRequest.Method.*;
@@ -61,8 +60,6 @@ public class RestExtendedAnalyzeAction extends BaseRestHandler {
 
         ExtendedAnalyzeRequest analyzeRequest = new ExtendedAnalyzeRequest(request.param("index"));
         analyzeRequest.text(text);
-        analyzeRequest.listenerThreaded(false);
-        analyzeRequest.preferLocal(request.paramAsBoolean("prefer_local", analyzeRequest.preferLocalShard()));
         analyzeRequest.analyzer(request.param("analyzer"));
         analyzeRequest.field(request.param("field"));
         analyzeRequest.tokenizer(request.param("tokenizer"));
@@ -95,25 +92,23 @@ public class RestExtendedAnalyzeAction extends BaseRestHandler {
     }
 
 
-    public static void buildFromContent(BytesReference content, ExtendedAnalyzeRequest analyzeRequest) throws ElasticsearchIllegalArgumentException {
+    public static void buildFromContent(BytesReference content, ExtendedAnalyzeRequest analyzeRequest) throws IllegalArgumentException {
         try (XContentParser parser = XContentHelper.createParser(content)) {
             if (parser.nextToken() != XContentParser.Token.START_OBJECT) {
-                throw new ElasticsearchIllegalArgumentException("Malformed content, must start with an object");
+                throw new IllegalArgumentException("Malformed content, must start with an object");
             } else {
                 XContentParser.Token token;
                 String currentFieldName = null;
                 while ((token = parser.nextToken()) != XContentParser.Token.END_OBJECT) {
                     if (token == XContentParser.Token.FIELD_NAME) {
                         currentFieldName = parser.currentName();
-                    } else if ("prefer_local".equals(currentFieldName) && token == XContentParser.Token.VALUE_BOOLEAN) {
-                        analyzeRequest.preferLocal(parser.booleanValue());
                     } else if ("text".equals(currentFieldName) && token == XContentParser.Token.VALUE_STRING) {
                         analyzeRequest.text(parser.text());
                     } else if ("text".equals(currentFieldName) && token == XContentParser.Token.START_ARRAY) {
-                        List<String> texts = Lists.newArrayList();
+                        List<String> texts = new ArrayList<>();
                         while ((token = parser.nextToken()) != XContentParser.Token.END_ARRAY) {
                             if (token.isValue() == false) {
-                                throw new ElasticsearchIllegalArgumentException(currentFieldName + " array element should only contain text");
+                                throw new IllegalArgumentException(currentFieldName + " array element should only contain text");
                             }
                             texts.add(parser.text());
                         }
@@ -125,28 +120,28 @@ public class RestExtendedAnalyzeAction extends BaseRestHandler {
                     } else if ("tokenizer".equals(currentFieldName) && token == XContentParser.Token.VALUE_STRING) {
                         analyzeRequest.tokenizer(parser.text());
                     } else if (("token_filters".equals(currentFieldName) || "filters".equals(currentFieldName)) && token == XContentParser.Token.START_ARRAY) {
-                        List<String> filters = Lists.newArrayList();
+                        List<String> filters = new ArrayList<>();
                         while ((token = parser.nextToken()) != XContentParser.Token.END_ARRAY) {
                             if (token.isValue() == false) {
-                                throw new ElasticsearchIllegalArgumentException(currentFieldName + " array element should only contain token filter's name");
+                                throw new IllegalArgumentException(currentFieldName + " array element should only contain token filter's name");
                             }
                             filters.add(parser.text());
                         }
                         analyzeRequest.tokenFilters(filters.toArray(Strings.EMPTY_ARRAY));
                     } else if ("char_filters".equals(currentFieldName) && token == XContentParser.Token.START_ARRAY) {
-                        List<String> charFilters = Lists.newArrayList();
+                        List<String> charFilters = new ArrayList<>();
                         while ((token = parser.nextToken()) != XContentParser.Token.END_ARRAY) {
                             if (token.isValue() == false) {
-                                throw new ElasticsearchIllegalArgumentException(currentFieldName + " array element should only contain char filter's name");
+                                throw new IllegalArgumentException(currentFieldName + " array element should only contain char filter's name");
                             }
                             charFilters.add(parser.text());
                         }
                         analyzeRequest.tokenFilters(charFilters.toArray(Strings.EMPTY_ARRAY));
                     } else if ("attributes".equals(currentFieldName) && token == XContentParser.Token.START_ARRAY){
-                        List<String> attributes = Lists.newArrayList();
+                        List<String> attributes = new ArrayList<>();
                         while ((token = parser.nextToken()) != XContentParser.Token.END_ARRAY) {
                             if (token.isValue() == false) {
-                                throw new ElasticsearchIllegalArgumentException(currentFieldName + " array element should only contain attribute name");
+                                throw new IllegalArgumentException(currentFieldName + " array element should only contain attribute name");
                             }
                             attributes.add(parser.text());
                         }
@@ -154,12 +149,12 @@ public class RestExtendedAnalyzeAction extends BaseRestHandler {
                     } else if ("use_short_attr".equals(currentFieldName) && token == XContentParser.Token.VALUE_BOOLEAN) {
                         analyzeRequest.shortAttributeName(parser.booleanValue());
                     } else {
-                        throw new ElasticsearchIllegalArgumentException("Unknown parameter [" + currentFieldName + "] in request body or parameter is of the wrong type[" + token + "] ");
+                        throw new IllegalArgumentException("Unknown parameter [" + currentFieldName + "] in request body or parameter is of the wrong type[" + token + "] ");
                     }
                 }
             }
         } catch (IOException e) {
-            throw new ElasticsearchIllegalArgumentException("Failed to parse request body", e);
+            throw new IllegalArgumentException("Failed to parse request body", e);
         }
     }
 }

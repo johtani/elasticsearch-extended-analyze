@@ -18,6 +18,7 @@ package info.johtani.elasticsearch.action.admin.indices.extended.analyze;
 
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.TokenStream;
+import org.apache.lucene.analysis.Tokenizer;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 import org.apache.lucene.analysis.tokenattributes.OffsetAttribute;
 import org.apache.lucene.analysis.tokenattributes.PositionIncrementAttribute;
@@ -27,25 +28,20 @@ import org.apache.lucene.util.AttributeReflector;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.IOUtils;
 import org.elasticsearch.ElasticsearchException;
-import org.elasticsearch.ElasticsearchIllegalArgumentException;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.support.ActionFilters;
-import org.elasticsearch.action.support.single.custom.TransportSingleCustomOperationAction;
+import org.elasticsearch.action.support.single.shard.TransportSingleShardAction;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
+import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.routing.ShardsIterator;
-import org.elasticsearch.common.collect.Lists;
-import org.elasticsearch.common.collect.Maps;
-import org.elasticsearch.common.collect.Sets;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.lang3.ArrayUtils;
 import org.elasticsearch.common.lucene.Lucene;
-import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.analysis.*;
-import org.elasticsearch.index.mapper.FieldMapper;
+import org.elasticsearch.index.mapper.MappedFieldType;
 import org.elasticsearch.index.mapper.internal.AllFieldMapper;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.shard.ShardId;
@@ -57,36 +53,26 @@ import org.elasticsearch.transport.TransportService;
 import java.io.IOException;
 import java.io.Reader;
 import java.io.StringReader;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Based on elasticsearch TransportAnalyzeAction
  */
-public class TransportExtendedAnalyzeAction extends TransportSingleCustomOperationAction<ExtendedAnalyzeRequest, ExtendedAnalyzeResponse> {
+public class TransportExtendedAnalyzeAction extends TransportSingleShardAction<ExtendedAnalyzeRequest, ExtendedAnalyzeResponse> {
 
     private final IndicesService indicesService;
     private final IndicesAnalysisService indicesAnalysisService;
 
-    private static final Settings DEFAULT_SETTINGS = ImmutableSettings.builder().put(IndexMetaData.SETTING_VERSION_CREATED, Version.CURRENT).build();
+    private static final Settings DEFAULT_SETTINGS = Settings.builder().put(IndexMetaData.SETTING_VERSION_CREATED, Version.CURRENT).build();
 
     @Inject
     public TransportExtendedAnalyzeAction(Settings settings, ThreadPool threadPool, ClusterService clusterService, TransportService transportService,
-                                          IndicesService indicesService, IndicesAnalysisService indicesAnalysisService, ActionFilters actionFilters) {
-        super(settings, ExtendedAnalyzeAction.NAME, threadPool, clusterService, transportService, actionFilters);
+                                          IndicesService indicesService, IndicesAnalysisService indicesAnalysisService, ActionFilters actionFilters,
+                                          IndexNameExpressionResolver indexNameExpressionResolver) {
+        super(settings, ExtendedAnalyzeAction.NAME, threadPool, clusterService, transportService, actionFilters, indexNameExpressionResolver,
+            ExtendedAnalyzeRequest.class, ThreadPool.Names.INDEX);
         this.indicesService = indicesService;
         this.indicesAnalysisService = indicesAnalysisService;
-    }
-
-    @Override
-    protected String executor() {
-        return ThreadPool.Names.INDEX;
-    }
-
-    @Override
-    protected ExtendedAnalyzeRequest newRequest() {
-        return new ExtendedAnalyzeRequest();
     }
 
     @Override
@@ -122,12 +108,12 @@ public class TransportExtendedAnalyzeAction extends TransportSingleCustomOperati
         String field = null;
         if (request.field() != null) {
             if (indexService == null) {
-                throw new ElasticsearchIllegalArgumentException("No index provided, and trying to analyzer based on a specific field which requires the index parameter");
+                throw new IllegalArgumentException("No index provided, and trying to analyzer based on a specific field which requires the index parameter");
             }
-            FieldMapper<?> fieldMapper = indexService.mapperService().smartNameFieldMapper(request.field());
+            MappedFieldType fieldMapper = indexService.mapperService().smartNameFieldType(request.field());
             if (fieldMapper != null) {
                 if (fieldMapper.isNumeric()) {
-                    throw new ElasticsearchIllegalArgumentException("Can't process field [" + request.field() + "], Analysis requests are not supported on numeric fields");
+                    throw new IllegalArgumentException("Can't process field [" + request.field() + "], Analysis requests are not supported on numeric fields");
                 }
                 analyzer = fieldMapper.indexAnalyzer();
                 field = fieldMapper.names().indexName();
@@ -148,20 +134,20 @@ public class TransportExtendedAnalyzeAction extends TransportSingleCustomOperati
                 analyzer = indexService.analysisService().analyzer(request.analyzer());
             }
             if (analyzer == null) {
-                throw new ElasticsearchIllegalArgumentException("failed to find analyzer [" + request.analyzer() + "]");
+                throw new IllegalArgumentException("failed to find analyzer [" + request.analyzer() + "]");
             }
         } else if (request.tokenizer() != null) {
             TokenizerFactory tokenizerFactory;
             if (indexService == null) {
                 TokenizerFactoryFactory tokenizerFactoryFactory = indicesAnalysisService.tokenizerFactoryFactory(request.tokenizer());
                 if (tokenizerFactoryFactory == null) {
-                    throw new ElasticsearchIllegalArgumentException("failed to find global tokenizer under [" + request.tokenizer() + "]");
+                    throw new IllegalArgumentException("failed to find global tokenizer under [" + request.tokenizer() + "]");
                 }
                 tokenizerFactory = tokenizerFactoryFactory.create(request.tokenizer(), DEFAULT_SETTINGS);
             } else {
                 tokenizerFactory = indexService.analysisService().tokenizer(request.tokenizer());
                 if (tokenizerFactory == null) {
-                    throw new ElasticsearchIllegalArgumentException("failed to find tokenizer under [" + request.tokenizer() + "]");
+                    throw new IllegalArgumentException("failed to find tokenizer under [" + request.tokenizer() + "]");
                 }
             }
             TokenFilterFactory[] tokenFilterFactories = new TokenFilterFactory[0];
@@ -172,17 +158,17 @@ public class TransportExtendedAnalyzeAction extends TransportSingleCustomOperati
                     if (indexService == null) {
                         TokenFilterFactoryFactory tokenFilterFactoryFactory = indicesAnalysisService.tokenFilterFactoryFactory(tokenFilterName);
                         if (tokenFilterFactoryFactory == null) {
-                            throw new ElasticsearchIllegalArgumentException("failed to find global token filter under [" + request.tokenizer() + "]");
+                            throw new IllegalArgumentException("failed to find global token filter under [" + request.tokenizer() + "]");
                         }
                         tokenFilterFactories[i] = tokenFilterFactoryFactory.create(tokenFilterName, DEFAULT_SETTINGS);
                     } else {
                         tokenFilterFactories[i] = indexService.analysisService().tokenFilter(tokenFilterName);
                         if (tokenFilterFactories[i] == null) {
-                            throw new ElasticsearchIllegalArgumentException("failed to find token filter under [" + request.tokenizer() + "]");
+                            throw new IllegalArgumentException("failed to find token filter under [" + request.tokenizer() + "]");
                         }
                     }
                     if (tokenFilterFactories[i] == null) {
-                        throw new ElasticsearchIllegalArgumentException("failed to find token filter under [" + request.tokenizer() + "]");
+                        throw new IllegalArgumentException("failed to find token filter under [" + request.tokenizer() + "]");
                     }
                 }
             }
@@ -194,17 +180,17 @@ public class TransportExtendedAnalyzeAction extends TransportSingleCustomOperati
                     if (indexService == null) {
                         CharFilterFactoryFactory charFilterFactoryFactory = indicesAnalysisService.charFilterFactoryFactory(charFilterName);
                         if (charFilterFactoryFactory == null) {
-                            throw new ElasticsearchIllegalArgumentException("failed to find global char filter top [" + request.tokenizer() + "]");
+                            throw new IllegalArgumentException("failed to find global char filter top [" + request.tokenizer() + "]");
                         }
                         charFilterFactories[i] = charFilterFactoryFactory.create(charFilterName, DEFAULT_SETTINGS);
                     } else {
                         charFilterFactories[i] = indexService.analysisService().charFilter(charFilterName);
                         if (charFilterFactories[i] == null) {
-                            throw new ElasticsearchIllegalArgumentException("failed to find char filter top [" + request.tokenizer() + "]");
+                            throw new IllegalArgumentException("failed to find char filter top [" + request.tokenizer() + "]");
                         }
                     }
                     if (charFilterFactories[i] == null) {
-                        throw new ElasticsearchIllegalArgumentException("failed to find char filter top [" + request.tokenizer() + "]");
+                        throw new IllegalArgumentException("failed to find char filter top [" + request.tokenizer() + "]");
                     }
                 }
             }
@@ -218,7 +204,7 @@ public class TransportExtendedAnalyzeAction extends TransportSingleCustomOperati
             }
         }
         if (analyzer == null) {
-            throw new ElasticsearchIllegalArgumentException("failed to find analyzer");
+            throw new IllegalArgumentException("failed to find analyzer");
         }
 
         return buildResponse(request, analyzer, closeAnalyzer, field);
@@ -226,7 +212,7 @@ public class TransportExtendedAnalyzeAction extends TransportSingleCustomOperati
 
     private ExtendedAnalyzeResponse buildResponse(ExtendedAnalyzeRequest request, Analyzer analyzer, boolean closeAnalyzer, String field) {
         ExtendedAnalyzeResponse response = new ExtendedAnalyzeResponse();
-        final Set<String> includeAttributes = Sets.newHashSet();
+        final Set<String> includeAttributes = new HashSet<>();
         if (request.attributes() != null && request.attributes().length > 0) {
             for (String attribute : request.attributes()) {
                 includeAttributes.add(attribute.toLowerCase());
@@ -242,12 +228,12 @@ public class TransportExtendedAnalyzeAction extends TransportSingleCustomOperati
         if (customAnalyzer != null) {
 
             // customAnalyzer = divide charfilter, tokenizer tokenfilters
-            CharFilterFactory[] charfilters = customAnalyzer.charFilters();
-            TokenizerFactory tokenizer = customAnalyzer.tokenizerFactory();
-            TokenFilterFactory[] tokenfilters = customAnalyzer.tokenFilters();
+            CharFilterFactory[] charfilterFactories = customAnalyzer.charFilters();
+            TokenizerFactory tokenizerFactory = customAnalyzer.tokenizerFactory();
+            TokenFilterFactory[] tokenfilterFactories = customAnalyzer.tokenFilters();
 
-            Map<String, List<String>> charFiltersTexts = Maps.newHashMapWithExpectedSize(charfilters.length);
-            Map<String, TokenListCreator> tokenFiltersTokenListCreator = Maps.newHashMapWithExpectedSize(tokenfilters.length);
+            Map<String, List<String>> charFiltersTexts = new HashMap<>(charfilterFactories.length);
+            Map<String, TokenListCreator> tokenFiltersTokenListCreator = new HashMap<>(tokenfilterFactories.length);
 
             TokenListCreator tokenizerTokenListCreator = new TokenListCreator();
 
@@ -255,8 +241,8 @@ public class TransportExtendedAnalyzeAction extends TransportSingleCustomOperati
                 String charFilteredSource = text;
 
                 Reader reader = new StringReader(text);
-                if (charfilters != null) {
-                    for (CharFilterFactory charfilter : charfilters) {
+                if (charfilterFactories != null) {
+                    for (CharFilterFactory charfilter : charfilterFactories) {
                         reader = charfilter.create(reader);
                         Reader readerForWriteOut = new StringReader(charFilteredSource);
                         readerForWriteOut = charfilter.create(readerForWriteOut);
@@ -264,7 +250,7 @@ public class TransportExtendedAnalyzeAction extends TransportSingleCustomOperati
 
                         List<String> texts = charFiltersTexts.get(charfilter.name());
                         if (texts == null) {
-                            texts = Lists.newArrayList();
+                            texts = new ArrayList<>();
                         }
                         texts.add(charFilteredSource);
                         charFiltersTexts.put(charfilter.name(), texts);
@@ -272,27 +258,33 @@ public class TransportExtendedAnalyzeAction extends TransportSingleCustomOperati
                 }
 
                 //analyzing only tokenizer
-                TokenStream stream = tokenizer.create(reader);
-                tokenizerTokenListCreator.analyze(stream, customAnalyzer, field ,includeAttributes, request.shortAttributeName());
+                try {
+                    Tokenizer tokenizer = tokenizerFactory.create();
+                    tokenizer.setReader(reader);
+                    TokenStream stream = (TokenStream)tokenizer;
+                    tokenizerTokenListCreator.analyze(stream, customAnalyzer, field, includeAttributes, request.shortAttributeName());
 
-                //analyzing each tokenfilter
-                if (tokenfilters != null) {
-                    for (int i = 0; i < tokenfilters.length; i++) {
-                        TokenListCreator tokenfilterTokenListCreator = tokenFiltersTokenListCreator.get(tokenfilters[i].name());
-                        if (tokenfilterTokenListCreator == null) {
-                            tokenfilterTokenListCreator = new TokenListCreator();
-                            tokenFiltersTokenListCreator.put(tokenfilters[i].name(), tokenfilterTokenListCreator);
+                    //analyzing each tokenfilter
+                    if (tokenfilterFactories != null) {
+                        for (int i = 0; i < tokenfilterFactories.length; i++) {
+                            TokenListCreator tokenfilterTokenListCreator = tokenFiltersTokenListCreator.get(tokenfilterFactories[i].name());
+                            if (tokenfilterTokenListCreator == null) {
+                                tokenfilterTokenListCreator = new TokenListCreator();
+                                tokenFiltersTokenListCreator.put(tokenfilterFactories[i].name(), tokenfilterTokenListCreator);
+                            }
+                            stream = createStackedTokenStream(text, charfilterFactories, tokenizerFactory, tokenfilterFactories, i + 1);
+                            tokenfilterTokenListCreator.analyze(stream, customAnalyzer, field, includeAttributes, request.shortAttributeName());
                         }
-                        stream = createStackedTokenStream(text, charfilters, tokenizer, tokenfilters, i + 1);
-                        tokenfilterTokenListCreator.analyze(stream, customAnalyzer, field, includeAttributes, request.shortAttributeName());
                     }
+                } catch (IOException ioe) {
+                    throw new ElasticsearchException("failed to analyze", ioe);
                 }
             }
 
             for (String charFilterName : charFiltersTexts.keySet()) {
                 response.addCharfilter(new ExtendedAnalyzeResponse.CharFilteredText(charFilterName, charFiltersTexts.get(charFilterName)));
             }
-            response.customAnalyzer(true).tokenizer(new ExtendedAnalyzeResponse.ExtendedAnalyzeTokenList(tokenizer.name(), tokenizerTokenListCreator.getTokens()));
+            response.customAnalyzer(true).tokenizer(new ExtendedAnalyzeResponse.ExtendedAnalyzeTokenList(tokenizerFactory.name(), tokenizerTokenListCreator.getTokens()));
             for (String tokenFilterName : tokenFiltersTokenListCreator.keySet()) {
                 response.customAnalyzer(true).addTokenfilter(
                     new ExtendedAnalyzeResponse.ExtendedAnalyzeTokenList(tokenFilterName, tokenFiltersTokenListCreator.get(tokenFilterName).getTokens()));
@@ -331,14 +323,16 @@ public class TransportExtendedAnalyzeAction extends TransportSingleCustomOperati
     }
 
 
-    private TokenStream createStackedTokenStream(String source, CharFilterFactory[] charfilters, TokenizerFactory tokenizer, TokenFilterFactory[] tokenfilters, int current) {
+    private TokenStream createStackedTokenStream(String source, CharFilterFactory[] charfilterFactories, TokenizerFactory tokenizerFactory, TokenFilterFactory[] tokenfilterFactories, int current) throws IOException{
         Reader reader = new StringReader(source);
-        for (CharFilterFactory charfilter : charfilters) {
+        for (CharFilterFactory charfilter : charfilterFactories) {
             reader = charfilter.create(reader);
         }
-        TokenStream tokenStream = tokenizer.create(reader);
+        Tokenizer tokenizer = tokenizerFactory.create();
+        tokenizer.setReader(reader);
+        TokenStream tokenStream = (TokenStream)tokenizer;
         for (int i = 0; i < current; i++) {
-            tokenStream = tokenfilters[i].create(tokenStream);
+            tokenStream = tokenfilterFactories[i].create(tokenStream);
         }
 
         return tokenStream;
@@ -362,7 +356,7 @@ public class TransportExtendedAnalyzeAction extends TransportSingleCustomOperati
     }
 
     private List<ExtendedAnalyzeResponse.ExtendedAnalyzeToken> processAnalysis(TokenStream stream, Set<String> includeAttributes, boolean shortAttrName, int lastPosition, int lastOffset) throws IOException {
-        List<ExtendedAnalyzeResponse.ExtendedAnalyzeToken> tokens = Lists.newArrayList();
+        List<ExtendedAnalyzeResponse.ExtendedAnalyzeToken> tokens = new ArrayList<>();
         stream.reset();
 
         //and each tokens output
@@ -392,7 +386,7 @@ public class TransportExtendedAnalyzeAction extends TransportSingleCustomOperati
         List<ExtendedAnalyzeResponse.ExtendedAnalyzeToken> tokens;
 
         TokenListCreator() {
-            tokens = Lists.newArrayList();
+            tokens = new ArrayList<>();
         }
 
         private void analyze(TokenStream stream, Analyzer analyzer, String field, Set<String> includeAttributes, boolean shortAttrName) {
@@ -442,7 +436,7 @@ public class TransportExtendedAnalyzeAction extends TransportSingleCustomOperati
      * @return Nested Object : Map<attrClass, Map<key, value>>
      */
     private Map<String, Map<String, Object>> extractExtendedAttributes(TokenStream stream, final Set<String> includeAttributes, final boolean shortAttrName) {
-        final Map<String, Map<String, Object>> extendedAttributes = Maps.newTreeMap();
+        final Map<String, Map<String, Object>> extendedAttributes = new TreeMap<>();
 
         stream.reflectWith(new AttributeReflector() {
             @Override
@@ -458,7 +452,7 @@ public class TransportExtendedAnalyzeAction extends TransportSingleCustomOperati
                 if (includeAttributes == null || includeAttributes.isEmpty() || includeAttributes.contains(attClass.getSimpleName().toLowerCase())) {
                     Map<String, Object> currentAttributes = extendedAttributes.get(attClass.getName());
                     if (currentAttributes == null) {
-                        currentAttributes = Maps.newHashMap();
+                        currentAttributes = new HashMap<>();
                     }
 
                     if (value instanceof BytesRef) {

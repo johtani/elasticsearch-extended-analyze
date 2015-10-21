@@ -17,16 +17,16 @@
 package info.johtani.elasticsearch.indices.extended.analyze;
 
 
+import info.johtani.elasticsearch.action.admin.indices.extended.analyze.ExtendedAnalyzeAction;
 import info.johtani.elasticsearch.action.admin.indices.extended.analyze.ExtendedAnalyzeRequest;
 import info.johtani.elasticsearch.action.admin.indices.extended.analyze.ExtendedAnalyzeRequestBuilder;
 import info.johtani.elasticsearch.action.admin.indices.extended.analyze.ExtendedAnalyzeResponse;
+import info.johtani.elasticsearch.plugin.extended.analyze.ExtendedAnalyzePlugin;
 import info.johtani.elasticsearch.rest.action.admin.indices.analyze.RestExtendedAnalyzeAction;
-import org.elasticsearch.ElasticsearchIllegalArgumentException;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.client.IndicesAdminClient;
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.network.NetworkUtils;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.node.Node;
 import org.hamcrest.core.IsNull;
@@ -36,7 +36,7 @@ import org.junit.Test;
 
 import java.util.Map;
 
-import static org.elasticsearch.common.settings.ImmutableSettings.*;
+import static org.elasticsearch.common.settings.Settings.*;
 import static org.elasticsearch.node.NodeBuilder.*;
 import static org.hamcrest.MatcherAssert.*;
 import static org.hamcrest.Matchers.*;
@@ -52,17 +52,18 @@ public class ExtendedAnalyzeActionTests {
     @Before
     public void setupServer() {
         node = nodeBuilder().settings(settingsBuilder()
-            .put("path.data", "target/data")
-            .put("cluster.name", "test-cluster-extended-analyze-" + NetworkUtils.getLocalAddress())
-            .put("discovery.zen.ping.multicast.enabled", false)
-            .put("index.analysis.char_filter.my_mapping.type", "mapping")
-            .putArray("index.analysis.char_filter.my_mapping.mappings", "PH=>F")
-            .put("index.analysis.analyzer.test_analyzer.type", "custom")
-            .put("index.analysis.analyzer.test_analyzer.position_offset_gap", "100")
-            .put("index.analysis.analyzer.test_analyzer.tokenizer", "standard")
-            .putArray("index.analysis.analyzer.test_analyzer.char_filter", "my_mapping")
-            .putArray("index.analysis.analyzer.test_analyzer.filter", "snowball")
-            .put("gateway.type", "none")).node();
+                .put("path.home", "target")
+                .put("path.data", "target/data")
+                .put("cluster.name", "test-cluster-extended-analyze")
+                .put("index.analysis.char_filter.my_mapping.type", "mapping")
+                .putArray("index.analysis.char_filter.my_mapping.mappings", "PH=>F")
+                .put("index.analysis.analyzer.test_analyzer.type", "custom")
+                .put("index.analysis.analyzer.test_analyzer.position_increment_gap", "100")
+                .put("index.analysis.analyzer.test_analyzer.tokenizer", "standard")
+                .putArray("index.analysis.analyzer.test_analyzer.char_filter", "my_mapping")
+                .putArray("index.analysis.analyzer.test_analyzer.filter", "snowball")
+                .put("plugin.types", ExtendedAnalyzePlugin.class.getName())
+        ).node();
     }
 
     @After
@@ -152,15 +153,15 @@ public class ExtendedAnalyzeActionTests {
     }
 
     private ExtendedAnalyzeRequestBuilder prepareAnalyzeNoText(IndicesAdminClient client, String index) {
-        return new ExtendedAnalyzeRequestBuilder(client, index);
+        return new ExtendedAnalyzeRequestBuilder(client, ExtendedAnalyzeAction.INSTANCE, index);
     }
 
     private ExtendedAnalyzeRequestBuilder prepareAnalyze(IndicesAdminClient client, String text) {
-        return new ExtendedAnalyzeRequestBuilder(client, null, text);
+        return new ExtendedAnalyzeRequestBuilder(client, ExtendedAnalyzeAction.INSTANCE, null, text);
     }
 
     private ExtendedAnalyzeRequestBuilder prepareAnalyze(IndicesAdminClient client, String index, String text) {
-        return new ExtendedAnalyzeRequestBuilder(client, index, text);
+        return new ExtendedAnalyzeRequestBuilder(client, ExtendedAnalyzeAction.INSTANCE, index, text);
     }
 
     private Client client() {
@@ -256,7 +257,7 @@ public class ExtendedAnalyzeActionTests {
             RestExtendedAnalyzeAction.buildFromContent(invalidContent, analyzeRequest);
             fail("shouldn't get here");
         } catch (Exception e) {
-            assertThat(e, instanceOf(ElasticsearchIllegalArgumentException.class));
+            assertThat(e, instanceOf(IllegalArgumentException.class));
             assertThat(e.getMessage(), equalTo("Failed to parse request body"));
         }
     }
@@ -276,7 +277,7 @@ public class ExtendedAnalyzeActionTests {
             RestExtendedAnalyzeAction.buildFromContent(invalidContent, analyzeRequest);
             fail("shouldn't get here");
         } catch (Exception e) {
-            assertThat(e, instanceOf(ElasticsearchIllegalArgumentException.class));
+            assertThat(e, instanceOf(IllegalArgumentException.class));
             assertThat(e.getMessage(), startsWith("Unknown parameter [unknown]"));
         }
     }
@@ -285,12 +286,18 @@ public class ExtendedAnalyzeActionTests {
     @Test
     public void analyzeWithMultiValues() throws Exception {
 
+        try {
+            client().admin().indices().prepareDelete("test2").execute().actionGet();
+        } catch (Exception e) {
+            // ignore
+        }
+
         //only analyzer =
         client().admin().indices().prepareCreate("test2").get();
         client().admin().cluster().prepareHealth().setWaitForEvents(Priority.LANGUID).setWaitForGreenStatus().execute().actionGet();
 
         client().admin().indices().preparePutMapping("test2")
-            .setType("document").setSource("simple", "type=string,analyzer=simple,position_offset_gap=100").get();
+            .setType("document").setSource("simple", "type=string,analyzer=simple,position_increment_gap=100").get();
 
 
         String[] texts = new String[]{"THIS IS A TEST", "THE SECOND TEXT"};

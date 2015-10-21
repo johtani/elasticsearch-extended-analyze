@@ -15,12 +15,12 @@
  */
 package info.johtani.elasticsearch.action.admin.indices.extended.analyze;
 
-import org.elasticsearch.action.admin.indices.IndicesAction;
-import org.elasticsearch.client.IndicesAdminClient;
+import org.elasticsearch.action.Action;
+import org.elasticsearch.client.ElasticsearchClient;
 
 /**
  */
-public class ExtendedAnalyzeAction extends IndicesAction<ExtendedAnalyzeRequest, ExtendedAnalyzeResponse, ExtendedAnalyzeRequestBuilder> {
+public class ExtendedAnalyzeAction extends Action<ExtendedAnalyzeRequest, ExtendedAnalyzeResponse, ExtendedAnalyzeRequestBuilder> {
 
     public static final ExtendedAnalyzeAction INSTANCE = new ExtendedAnalyzeAction();
     public static final String NAME = "indices:admin/extended_analyze";
@@ -35,7 +35,7 @@ public class ExtendedAnalyzeAction extends IndicesAction<ExtendedAnalyzeRequest,
     }
 
     @Override
-    public ExtendedAnalyzeRequestBuilder newRequestBuilder(IndicesAdminClient client) {
-        return new ExtendedAnalyzeRequestBuilder(client);
+    public ExtendedAnalyzeRequestBuilder newRequestBuilder(ElasticsearchClient client) {
+        return new ExtendedAnalyzeRequestBuilder(client, this);
     }
 }

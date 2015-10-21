@@ -3,7 +3,6 @@ package info.johtani.elasticsearch.action.admin.indices.extended.analyze;
 
 import org.elasticsearch.action.ActionResponse;
 import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.collect.Lists;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Streamable;
@@ -62,10 +61,9 @@ public class ExtendedAnalyzeResponse extends ActionResponse implements ToXConten
 
     public ExtendedAnalyzeResponse addTokenfilter(ExtendedAnalyzeTokenList tokenfilter) {
         if (tokenfilters == null) {
-            tokenfilters = Lists.newArrayList(tokenfilter);
-        } else {
-            tokenfilters.add(tokenfilter);
+            tokenfilters = new ArrayList<>();
         }
+        tokenfilters.add(tokenfilter);
         return this;
     }
 
@@ -84,10 +82,9 @@ public class ExtendedAnalyzeResponse extends ActionResponse implements ToXConten
 
     public ExtendedAnalyzeResponse addCharfilter(CharFilteredText charfilter) {
         if (charfilters == null) {
-            charfilters = Lists.newArrayList(charfilter);
-        } else {
-            this.charfilters.add(charfilter);
+            charfilters = new ArrayList<>();
         }
+        this.charfilters.add(charfilter);
         return this;
     }
 
@@ -157,14 +154,14 @@ public class ExtendedAnalyzeResponse extends ActionResponse implements ToXConten
             tokenizer = ExtendedAnalyzeTokenList.readExtendedAnalyzeTokenList(in);
             int size = in.readVInt();
             if (size > 0) {
-                tokenfilters = Lists.newArrayListWithCapacity(size);
+                tokenfilters = new ArrayList<>(size);
                 for (int i = 0; i < size; i++) {
                     tokenfilters.add(ExtendedAnalyzeTokenList.readExtendedAnalyzeTokenList(in));
                 }
             }
             size = in.readVInt();
             if (size > 0) {
-                charfilters = Lists.newArrayListWithCapacity(size);
+                charfilters = new ArrayList<>(size);
                 for (int i = 0; i < size; i++) {
                     charfilters.add(CharFilteredText.readCharFilteredText(in));
                 }
@@ -345,7 +342,7 @@ public class ExtendedAnalyzeResponse extends ActionResponse implements ToXConten
         @Override
         public void readFrom(StreamInput in) throws IOException {
             name = in.readString();
-            texts = Lists.newArrayList(in.readStringArray());
+            texts = Arrays.asList(in.readStringArray());
         }
 
         @Override

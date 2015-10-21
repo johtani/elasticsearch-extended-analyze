@@ -15,19 +15,19 @@
  */
 package info.johtani.elasticsearch.plugin.extended.analyze;
 
-import org.elasticsearch.common.collect.ImmutableList;
 import org.elasticsearch.common.inject.Module;
 import info.johtani.elasticsearch.module.extended.analyze.ExtendedAnalyzeModule;
-import org.elasticsearch.plugins.AbstractPlugin;
+import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.rest.RestModule;
 import info.johtani.elasticsearch.rest.action.admin.indices.analyze.RestExtendedAnalyzeAction;
 
 import java.util.Collection;
+import java.util.Collections;
 
 /**
  * Extended _analyze API Plugin
  */
-public class ExtendedAnalyzePlugin extends AbstractPlugin {
+public class ExtendedAnalyzePlugin extends Plugin {
 
     @Override
     public String name() {
@@ -45,7 +45,7 @@ public class ExtendedAnalyzePlugin extends AbstractPlugin {
 
 
     @Override
-    public Collection<Class<? extends Module>> modules() {
-        return ImmutableList.<Class<? extends Module>>of(ExtendedAnalyzeModule.class);
+    public Collection<Module> nodeModules() {
+        return Collections.<Module>singletonList(new ExtendedAnalyzeModule());
     }
 }

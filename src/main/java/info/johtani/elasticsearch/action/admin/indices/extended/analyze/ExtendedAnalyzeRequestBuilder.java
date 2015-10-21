@@ -16,37 +16,27 @@
 
 package info.johtani.elasticsearch.action.admin.indices.extended.analyze;
 
-import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.support.single.custom.SingleCustomOperationRequestBuilder;
-import org.elasticsearch.client.IndicesAdminClient;
+import org.elasticsearch.action.support.single.shard.SingleShardOperationRequestBuilder;
+import org.elasticsearch.client.ElasticsearchClient;
 
 /**
  */
-public class ExtendedAnalyzeRequestBuilder extends SingleCustomOperationRequestBuilder<ExtendedAnalyzeRequest, ExtendedAnalyzeResponse, ExtendedAnalyzeRequestBuilder> {
+public class ExtendedAnalyzeRequestBuilder extends SingleShardOperationRequestBuilder<ExtendedAnalyzeRequest, ExtendedAnalyzeResponse, ExtendedAnalyzeRequestBuilder> {
 
-    public ExtendedAnalyzeRequestBuilder(IndicesAdminClient indicesClient) {
-        super(indicesClient, new ExtendedAnalyzeRequest());
+    public ExtendedAnalyzeRequestBuilder(ElasticsearchClient client, ExtendedAnalyzeAction action) {
+        super(client, action, new ExtendedAnalyzeRequest());
     }
 
-    public ExtendedAnalyzeRequestBuilder(IndicesAdminClient indicesClient, String index) {
-        super(indicesClient, new ExtendedAnalyzeRequest(index));
+    public ExtendedAnalyzeRequestBuilder(ElasticsearchClient client, ExtendedAnalyzeAction action, String index) {
+        super(client, action, new ExtendedAnalyzeRequest(index));
     }
 
-    public ExtendedAnalyzeRequestBuilder(IndicesAdminClient indicesClient, String index, String text) {
-        super(indicesClient, new ExtendedAnalyzeRequest(index).text(text));
+    public ExtendedAnalyzeRequestBuilder(ElasticsearchClient client, ExtendedAnalyzeAction action, String index, String text) {
+        super(client, action, new ExtendedAnalyzeRequest(index).text(text));
     }
 
     public ExtendedAnalyzeRequestBuilder setText(String... text) {
         request.text(text);
-        return this;
-    }
-
-    /**
-     * Sets the index to use to analyzer the text (for example, if it holds specific analyzers
-     * registered).
-     */
-    public ExtendedAnalyzeRequestBuilder setIndex(String index) {
-        request.index(index);
         return this;
     }
 
@@ -108,10 +98,5 @@ public class ExtendedAnalyzeRequestBuilder extends SingleCustomOperationRequestB
     public ExtendedAnalyzeRequestBuilder setShortAttributeName(boolean shortAttributeName) {
         request.shortAttributeName(shortAttributeName);
         return this;
-    }
-
-    @Override
-    protected void doExecute(ActionListener<ExtendedAnalyzeResponse> listener) {
-        client.execute(ExtendedAnalyzeAction.INSTANCE, request, listener);
     }
 }
