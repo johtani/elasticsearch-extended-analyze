@@ -1,3 +1,8 @@
+**NOTE This plugin deprecated in Elasticsearch 2.2**  
+I added this plugin feature to Elasticsearch 2.2.0.  
+See: [Elasticsearch 2.2 documentation](https://www.elastic.co/guide/en/elasticsearch/reference/current/_explain_analyze.html)
+
+
 Extend _analyze API for Elasticsearch
 =====================================
 
